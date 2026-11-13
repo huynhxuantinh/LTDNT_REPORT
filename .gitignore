@@ -1,0 +1,10 @@
+# Bản code mẫu cục bộ để tham khảo, không công khai lên GitHub.
+reference/
+
+# Secrets và build output
+**/.env
+**/appsettings.Development.json
+**/bin/
+**/obj/
+.dart_tool/
+build/
