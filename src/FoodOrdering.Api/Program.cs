@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using FoodOrdering.Api.Auth;
 using FoodOrdering.Api.Categories;
+using FoodOrdering.Api.Carts;
 using FoodOrdering.Api.Common;
 using FoodOrdering.Api.Data;
 using FoodOrdering.Api.FoodItems;
@@ -31,6 +32,7 @@ builder.Services.AddScoped<AdminCategoryService>();
 builder.Services.AddScoped<MemberCategoryService>();
 builder.Services.AddScoped<AdminFoodItemService>();
 builder.Services.AddScoped<MemberFoodService>();
+builder.Services.AddScoped<CartService>();
 builder.Services.AddSingleton<IFoodImageStorage, FoodImageStorage>();
 builder.Services.AddScoped<UserProfileService>();
 builder.Services.AddSingleton(jwtOptions);
@@ -84,15 +86,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddCors();
 
 var webRootPath = builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
 Directory.CreateDirectory(webRootPath);
 
 var app = builder.Build();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors(policy => policy
+        .SetIsOriginAllowed(origin => Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            && (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)))
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+}
 app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
 {
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-    await context.Response.WriteAsJsonAsync(ApiErrorResponse.Create("internal_error", "Đã xảy ra lỗi hệ thống."));
+    var message = app.Environment.IsDevelopment()
+        ? context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error.Message ?? "Đã xảy ra lỗi hệ thống."
+        : "Đã xảy ra lỗi hệ thống.";
+    await context.Response.WriteAsJsonAsync(ApiErrorResponse.Create("internal_error", message));
 }));
 app.UseAuthentication();
 app.UseAuthorization();

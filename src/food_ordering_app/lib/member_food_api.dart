@@ -65,10 +65,13 @@ class MemberFoodApi {
     required int page,
     required int pageSize,
     int? categoryId,
+    String? search,
   }) async {
     try {
       final query = <String, String>{'page': '$page', 'pageSize': '$pageSize'};
       if (categoryId != null) query['categoryId'] = '$categoryId';
+      if (search != null && search.trim().isNotEmpty)
+        query['search'] = search.trim();
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/api/foods')
             .replace(queryParameters: query),
@@ -84,5 +87,11 @@ class MemberFoodApi {
     } on FormatException {
       throw const ApiException('Dữ liệu món ăn không hợp lệ.');
     }
+  }
+
+  static Future<MemberFoodItem> getById(int id) async {
+    final r = await http.get(Uri.parse('${ApiConfig.baseUrl}/api/foods/$id'));
+    if (r.statusCode != 200) throw const ApiException('Không tìm thấy món ăn.');
+    return MemberFoodItem.fromJson(jsonDecode(r.body));
   }
 }

@@ -16,6 +16,11 @@ public sealed record MemberFoodItem(
 
 public sealed class MemberFoodService(FoodOrderingDbContext dbContext)
 {
+    public async Task<MemberFoodItem?> GetByIdAsync(int foodItemId, CancellationToken cancellationToken) =>
+        await dbContext.FoodItems.AsNoTracking()
+            .Where(item => item.FoodItemId == foodItemId && item.IsAvailable)
+            .Select(item => new MemberFoodItem(item.FoodItemId, item.CategoryId, item.Category!.Name, item.Name, item.Description, item.Price, item.ImageUrl, item.CreatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
     public async Task<PagedResponse<MemberFoodItem>> GetAllAsync(
         PageRequest pageRequest,
         int? categoryId,

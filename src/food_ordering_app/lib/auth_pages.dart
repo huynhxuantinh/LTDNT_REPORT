@@ -5,6 +5,9 @@ import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/home_categories.dart';
 import 'package:trek_bikes_app/home_latest_foods.dart';
 import 'package:trek_bikes_app/member_category_api.dart';
+import 'package:trek_bikes_app/cart_api.dart';
+import 'package:trek_bikes_app/cart_page.dart';
+import 'package:trek_bikes_app/orders_page.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -37,6 +40,7 @@ class _LoginPageState extends State<LoginPage> {
           password: _password.text,
         ),
       );
+      await CartApi.syncOfflineCart();
       if (mounted) widget.onSessionChanged();
     } on ApiException catch (error) {
       _message(error.message);
@@ -247,7 +251,34 @@ class _AccountHomeState extends State<AccountHome> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Đặt món ăn')),
+    appBar: AppBar(
+      title: const Text('Đặt món ăn'),
+      actions: [
+        ValueListenableBuilder<int>(
+          valueListenable: cartCount,
+          builder: (_, count, __) => Stack(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CartPage()),
+                ),
+                icon: const Icon(Icons.shopping_cart),
+              ),
+              if (count > 0)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: CircleAvatar(
+                    radius: 9,
+                    child: Text('$count', style: const TextStyle(fontSize: 11)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
     body: Column(
       children: [
         SizedBox(
@@ -286,6 +317,7 @@ class _AccountHomeState extends State<AccountHome> {
                     child: const Text('Quản lý người dùng'),
                   ),
                 const Text('Bạn đã đăng nhập.'),
+                OutlinedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersPage())), child: const Text('Đơn hàng của tôi')),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _changePassword,

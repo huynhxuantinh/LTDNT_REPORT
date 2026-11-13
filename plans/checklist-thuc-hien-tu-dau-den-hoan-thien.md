@@ -106,25 +106,25 @@
 - [x] Trang chủ hiển thị category.
 - [x] Hiển thị món mới nhất có phân trang.
 - [x] Hiển thị món theo category có phân trang.
-- [ ] Tìm kiếm món có phân trang.
-- [ ] Trang chi tiết món.
-- [ ] Nút thêm giỏ ở danh sách và chi tiết.
-- [ ] Badge số lượng giỏ.
-- [ ] Hiển thị giỏ; thêm/xóa/tăng/giảm số lượng.
-- [ ] API Cart/CartItem là nguồn dữ liệu chính khi online.
-- [ ] Checkout `Delivery`: tên người nhận, SĐT, địa chỉ, ghi chú.
-- [ ] Tạo Order + OrderDetail bằng transaction; xóa/cập nhật giỏ sau khi đặt thành công.
-- [ ] Member xem danh sách đơn và xem chi tiết đơn.
-- [ ] COD/tiền mặt: đơn mới `Unpaid`, sau khi thu tiền chuyển `Paid`.
+- [x] Tìm kiếm món có phân trang.
+- [x] Trang chi tiết món.
+- [x] Nút thêm giỏ ở danh sách và chi tiết.
+- [x] Badge số lượng giỏ.
+- [x] Hiển thị giỏ; thêm/xóa/tăng/giảm số lượng.
+- [x] API Cart/CartItem là nguồn dữ liệu chính khi online.
+- [x] Checkout `Delivery`: tên người nhận, SĐT, địa chỉ, ghi chú.
+- [x] Tạo Order + OrderDetail bằng transaction; xóa/cập nhật giỏ sau khi đặt thành công.
+- [x] Member xem danh sách đơn và xem chi tiết đơn.
+- [x] COD/tiền mặt: đơn mới `Unpaid`, sau khi thu tiền chuyển `Paid`.
 
 ### SQLite trên điện thoại (làm sau luồng online)
 
-- [ ] Thêm `sqflite` và `path`.
-- [ ] Tạo database SQLite, version và migration cục bộ.
-- [ ] Cache category và món ăn có thời điểm cập nhật.
-- [ ] Tạo bảng giỏ hàng local cho offline.
-- [ ] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng.
-- [ ] Không lưu mật khẩu hoặc token JWT trong SQLite.
+- [x] Thêm `sqflite` và `path`.
+- [x] Tạo database SQLite, version và migration cục bộ.
+- [x] Cache category và món ăn có thời điểm cập nhật.
+- [x] Tạo bảng giỏ hàng local cho offline.
+- [x] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng.
+- [x] Không lưu mật khẩu hoặc token JWT trong SQLite.
 
 ## Giai đoạn 6 — Quản lý đơn hàng (Admin)
 

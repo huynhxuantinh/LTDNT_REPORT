@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:trek_bikes_app/cart_api.dart';
+import 'package:trek_bikes_app/food_detail_page.dart';
 
 class HomeLatestFoods extends StatefulWidget {
   const HomeLatestFoods({super.key, this.categoryId, this.categoryName});
@@ -16,6 +18,7 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
   static const _pageSize = 10;
   late Future<MemberFoodPage> _foods;
   int _page = 1;
+  final _search = TextEditingController();
 
   @override
   void initState() {
@@ -36,6 +39,7 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
     page: _page,
     pageSize: _pageSize,
     categoryId: widget.categoryId,
+    search: _search.text,
   );
 
   void _goToPage(int page) {
@@ -73,6 +77,26 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _search,
+              onSubmitted: (_) => setState(() {
+                _page = 1;
+                _reload();
+              }),
+              decoration: InputDecoration(
+                hintText: 'Tìm món ăn',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => setState(() {
+                    _page = 1;
+                    _reload();
+                  }),
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -81,10 +105,33 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
               itemBuilder: (context, index) {
                 final food = result.items[index];
                 return ListTile(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FoodDetailPage(foodId: food.foodItemId),
+                    ),
+                  ),
                   leading: const CircleAvatar(child: Icon(Icons.fastfood)),
                   title: Text(food.name),
                   subtitle: Text(food.categoryName),
-                  trailing: Text('${food.price.toStringAsFixed(0)} đ'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('${food.price.toStringAsFixed(0)} đ'),
+                      IconButton(
+                        icon: const Icon(Icons.add_shopping_cart),
+                        onPressed: () async {
+                          await CartApi.add(food.foodItemId);
+                          if (context.mounted)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Đã thêm vào giỏ hàng.'),
+                              ),
+                            );
+                        },
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
