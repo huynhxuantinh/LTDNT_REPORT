@@ -8,6 +8,8 @@ import 'package:trek_bikes_app/member_category_api.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/cart_page.dart';
 import 'package:trek_bikes_app/orders_page.dart';
+import 'package:trek_bikes_app/staff_order_page.dart';
+import 'package:trek_bikes_app/staff_orders_page.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -306,6 +308,13 @@ class _AccountHomeState extends State<AccountHome> {
                     onPressed: _openAdminFoodItems,
                     child: const Text('Quản lý món ăn'),
                   ),
+                if (_role == 'Staff' || _role == 'Admin')
+                  OutlinedButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffOrderPage())),
+                    child: const Text('Tạo đơn tại quán'),
+                  ),
+                if (_role == 'Staff' || _role == 'Admin')
+                  OutlinedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffOrdersPage())), child: const Text('Xử lý đơn tại quán')),
                 if (_role == 'Admin')
                   OutlinedButton(
                     onPressed: _openAdminCategories,

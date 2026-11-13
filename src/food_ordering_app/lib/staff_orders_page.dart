@@ -1,0 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:trek_bikes_app/api_config.dart';
+import 'package:trek_bikes_app/session_helper.dart';
+class StaffOrdersPage extends StatelessWidget { const StaffOrdersPage({super.key}); Future<List<dynamic>> load()async{final t=await SessionHelper.accessToken;final r=await http.get(Uri.parse('${ApiConfig.baseUrl}/api/staff/orders'),headers:{'Authorization':'Bearer $t'});return jsonDecode(r.body);} Future<void> cash(int id)async{final t=await SessionHelper.accessToken;await http.post(Uri.parse('${ApiConfig.baseUrl}/api/orders/$id/collect-cash'),headers:{'Authorization':'Bearer $t'});} @override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Xử lý đơn Staff')),body:FutureBuilder<List<dynamic>>(future:load(),builder:(c,s){if(!s.hasData)return const Center(child:CircularProgressIndicator());return ListView(children:s.data!.map((x)=>ListTile(title:Text(x['orderCode']),subtitle:Text('${x['orderType']} · ${x['status']}'),trailing:x['paymentStatus']=='Unpaid'?FilledButton(onPressed:()=>cash(x['orderId']),child:const Text('Thu tiền')):Text(x['paymentStatus']))).toList());}));}
