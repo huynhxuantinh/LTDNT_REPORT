@@ -2,11 +2,11 @@
 
 ## 1. Công nghệ bắt buộc
 
-- [ ] Flutter + Dart cho ứng dụng di động.
+- [x] Flutter + Dart cho ứng dụng di động.
 - [ ] SQLite trên điện thoại: cache dữ liệu, giỏ hàng offline và phiên cần thiết.
-- [ ] REST API ASP.NET Core 10.
-- [ ] SQL Server là cơ sở dữ liệu trung tâm.
-- [ ] GitHub repository có nhánh `main` và `dev`.
+- [x] REST API ASP.NET Core 10.
+- [x] SQL Server là cơ sở dữ liệu trung tâm.
+- [x] GitHub repository có nhánh `main` và `dev`.
 
 ## 2. Dữ liệu cần thiết
 
@@ -22,10 +22,10 @@
 
 ### Xác thực và phân quyền
 
-- [ ] Đăng ký.
-- [ ] Đăng nhập bằng JWT.
-- [ ] Đổi mật khẩu.
-- [ ] Đăng xuất.
+- [x] Đăng ký.
+- [x] Đăng nhập bằng JWT.
+- [x] Đổi mật khẩu.
+- [x] Đăng xuất.
 - [ ] Admin quản lý Member.
 - [ ] Admin quản lý Role.
 - [ ] Phân quyền Member/Admin ở Flutter và API.

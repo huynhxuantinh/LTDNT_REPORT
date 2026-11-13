@@ -1,0 +1,78 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Source mẫu TrekBikes chỉ giữ cục bộ để tham khảo, không đưa vào app mới.
+/lib/LoginResponse.dart
+/lib/bike.dart
+/lib/bike_repository.dart
+/lib/cart.dart
+/lib/cart_ext.dart
+/lib/cart_page.dart
+/lib/cart_repository.dart
+/lib/category.dart
+/lib/category_page.dart
+/lib/category_repository.dart
+/lib/details_page.dart
+/lib/helper.dart
+/lib/home_page.dart
+/lib/invoice.dart
+/lib/invoice_details_page.dart
+/lib/invoice_page.dart
+/lib/invoice_repository.dart
+/lib/login.dart
+/lib/login_page.dart
+/lib/member.dart
+/lib/member_repository.dart
+/lib/profile_page.dart
+/lib/register_page.dart
+/lib/status.dart
+/lib/status_repository.dart
+/lib/sub_category.dart
+/lib/sub_category_repository.dart
+/README.md
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Widget Preview related
+.widget_preview/
