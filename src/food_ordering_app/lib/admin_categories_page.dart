@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/category_api.dart';
 
@@ -81,6 +82,14 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
       if (mounted)
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể kết nối máy chủ. Hãy thử lại.'),
+          ),
+        );
+      }
     }
   }
 
@@ -96,19 +105,12 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
       future: _categories,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done)
-          return const Center(child: CircularProgressIndicator());
-        if (snapshot.hasError) {
-          return Center(
-            child: FilledButton.icon(
-              onPressed: () => setState(_reload),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tải lại danh mục'),
-            ),
-          );
-        }
+          return const AppLoadingState();
+        if (snapshot.hasError)
+          return AppErrorState(onRetry: () => setState(_reload));
         final categories = snapshot.data ?? [];
         if (categories.isEmpty)
-          return const Center(child: Text('Chưa có danh mục.'));
+          return const AppEmptyState(message: 'Chưa có danh mục.');
         return RefreshIndicator(
           onRefresh: () async => setState(_reload),
           child: ListView.separated(
@@ -178,6 +180,12 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = 'Không thể kết nối máy chủ. Kiểm tra mạng và thử lại.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -82,14 +82,14 @@
 
 ### Food item
 
-- [ ] API danh sách món phân trang, lọc theo category, tìm kiếm.
-- [ ] API thêm món và upload ảnh.
-- [ ] API sửa món; thay ảnh mới phải xóa ảnh cũ sau khi lưu thành công.
-- [ ] API xóa cứng món chưa có trong `OrderDetails`, đồng thời xóa file ảnh.
-- [ ] API ẩn món đã có trong `OrderDetails` bằng `IsAvailable = false`.
-- [ ] API Member chỉ trả món `IsAvailable = true`.
-- [ ] Flutter Admin quản lý món theo category, tìm kiếm và phân trang.
-- [ ] Test validation ảnh: kích thước, MIME type, extension, tên file UUID.
+- [x] API danh sách món phân trang, lọc theo category, tìm kiếm.
+- [x] API thêm món và upload ảnh.
+- [x] API sửa món; thay ảnh mới phải xóa ảnh cũ sau khi lưu thành công.
+- [x] API xóa cứng món chưa có trong `OrderDetails`, đồng thời xóa file ảnh.
+- [x] API ẩn món đã có trong `OrderDetails` bằng `IsAvailable = false`.
+- [x] API Member chỉ trả món `IsAvailable = true`.
+- [x] Flutter Admin quản lý món theo category, tìm kiếm và phân trang.
+- [x] Test validation ảnh: kích thước, MIME type, extension, tên file UUID.
 
 ## Giai đoạn 5 — Flutter khách hàng và SQLite
 
@@ -98,8 +98,8 @@
 - [x] Khởi tạo Flutter project và màn hình auth.
 - [x] Flutter gọi API đăng ký/login/đổi mật khẩu/logout.
 - [x] Lưu access/refresh token bằng secure storage.
-- [ ] Cấu hình URL API cho Android emulator (`10.0.2.2`) và máy thật (LAN/HTTPS).
-- [ ] Xử lý loading, lỗi mạng, empty state trên mọi màn.
+- [x] Cấu hình URL API cho Android emulator (`10.0.2.2`) và máy thật (LAN/HTTPS).
+- [x] Xử lý loading, lỗi mạng, empty state trên mọi màn.
 
 ### Member mua online
 

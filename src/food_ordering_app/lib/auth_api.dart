@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:trek_bikes_app/api_config.dart';
 
 class AuthSession {
   final String userId;
@@ -36,7 +36,7 @@ class ApiException implements Exception {
 }
 
 class AuthApi {
-  static String get _baseUrl => dotenv.env['API_URL'] ?? 'http://10.0.2.2:5000';
+  static String get _baseUrl => ApiConfig.baseUrl;
   static Uri _uri(String path) => Uri.parse('$_baseUrl/api/auth/$path');
 
   static Map<String, String> _headers([String? token]) => {

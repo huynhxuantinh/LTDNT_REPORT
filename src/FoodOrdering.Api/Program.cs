@@ -4,10 +4,13 @@ using FoodOrdering.Api.Auth;
 using FoodOrdering.Api.Categories;
 using FoodOrdering.Api.Common;
 using FoodOrdering.Api.Data;
+using FoodOrdering.Api.FoodItems;
+using FoodOrdering.Api.Uploads;
 using FoodOrdering.Api.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +28,9 @@ builder.Services.AddDbContext<FoodOrderingDbContext>(options => options.UseSqlSe
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AdminUserService>();
 builder.Services.AddScoped<AdminCategoryService>();
+builder.Services.AddScoped<AdminFoodItemService>();
+builder.Services.AddScoped<MemberFoodService>();
+builder.Services.AddSingleton<IFoodImageStorage, FoodImageStorage>();
 builder.Services.AddScoped<UserProfileService>();
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
@@ -78,6 +84,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
+var webRootPath = builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(webRootPath);
+
 var app = builder.Build();
 app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
 {
@@ -87,6 +96,7 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(webRootPath) });
 app.MapControllers();
 app.Run();
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/admin_categories_page.dart';
+import 'package:trek_bikes_app/admin_food_items_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
@@ -36,6 +37,8 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) widget.onSessionChanged();
     } on ApiException catch (error) {
       _message(error.message);
+    } catch (_) {
+      _message('Không thể kết nối máy chủ. Kiểm tra mạng và thử lại.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -106,6 +109,8 @@ class _RegisterPageState extends State<RegisterPage> {
       Navigator.pop(context);
     } on ApiException catch (error) {
       _message(error.message);
+    } catch (_) {
+      _message('Không thể kết nối máy chủ. Kiểm tra mạng và thử lại.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -192,6 +197,19 @@ class _AccountHomeState extends State<AccountHome> {
     );
   }
 
+  void _openAdminFoodItems() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          role: _role,
+          allowedRoles: const {'Admin'},
+          child: const AdminFoodItemsPage(),
+        ),
+      ),
+    );
+  }
+
   Future<void> _logout() async {
     setState(() => _loading = true);
     try {
@@ -204,6 +222,8 @@ class _AccountHomeState extends State<AccountHome> {
         );
     } on ApiException catch (error) {
       _message(error.message);
+    } catch (_) {
+      _message('Không thể kết nối máy chủ. Đã đăng xuất trên thiết bị.');
     } finally {
       await SessionHelper.clear();
       if (mounted) {
@@ -228,6 +248,11 @@ class _AccountHomeState extends State<AccountHome> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (_role == 'Admin')
+            OutlinedButton(
+              onPressed: _openAdminFoodItems,
+              child: const Text('Quản lý món ăn'),
+            ),
           if (_role == 'Admin')
             OutlinedButton(
               onPressed: _openAdminCategories,
@@ -298,6 +323,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       Navigator.pop(context, true);
     } on ApiException catch (error) {
       _message(error.message);
+    } catch (_) {
+      _message('Không thể kết nối máy chủ. Kiểm tra mạng và thử lại.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

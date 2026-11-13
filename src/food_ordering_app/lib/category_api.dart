@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -33,7 +33,7 @@ class AdminCategory {
 }
 
 class CategoryApi {
-  static String get _baseUrl => dotenv.env['API_URL'] ?? 'http://10.0.2.2:5000';
+  static String get _baseUrl => ApiConfig.baseUrl;
   static Uri _uri([String? categoryId]) => Uri.parse(
     '$_baseUrl/api/admin/categories${categoryId == null ? '' : '/$categoryId'}',
   );
