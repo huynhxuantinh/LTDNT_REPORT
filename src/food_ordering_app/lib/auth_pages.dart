@@ -3,6 +3,7 @@ import 'package:trek_bikes_app/admin_categories_page.dart';
 import 'package:trek_bikes_app/admin_food_items_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/home_categories.dart';
+import 'package:trek_bikes_app/home_latest_foods.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -247,7 +248,8 @@ class _AccountHomeState extends State<AccountHome> {
     appBar: AppBar(title: const Text('Đặt món ăn')),
     body: Column(
       children: [
-        const Expanded(child: HomeCategories()),
+        const SizedBox(height: 170, child: HomeCategories()),
+        const Expanded(child: HomeLatestFoods()),
         SafeArea(
           top: false,
           child: Padding(

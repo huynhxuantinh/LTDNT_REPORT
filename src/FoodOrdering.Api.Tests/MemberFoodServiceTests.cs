@@ -10,6 +10,29 @@ namespace FoodOrdering.Api.Tests;
 public sealed class MemberFoodServiceTests
 {
     [Fact]
+    public async Task GetAllAsync_ReturnsNewestFoodFirstWithPagination()
+    {
+        await using var context = new FoodOrderingDbContext(
+            new DbContextOptionsBuilder<FoodOrderingDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options);
+        var category = new Category { Name = "Món chính", IsActive = true, CreatedAt = DateTime.UtcNow };
+        context.Categories.Add(category);
+        context.FoodItems.AddRange(
+            new FoodItem { Category = category, Name = "Món cũ", Price = 30000, IsAvailable = true, CreatedAt = DateTime.UtcNow.AddDays(-1) },
+            new FoodItem { Category = category, Name = "Món mới", Price = 40000, IsAvailable = true, CreatedAt = DateTime.UtcNow });
+        await context.SaveChangesAsync();
+        var service = new MemberFoodService(context);
+
+        var result = await service.GetAllAsync(new PageRequest(1, 1), null, null, CancellationToken.None);
+
+        Assert.Single(result.Data);
+        Assert.Equal("Món mới", result.Data[0].Name);
+        Assert.Equal(2, result.Meta.TotalItems);
+        Assert.Equal(2, result.Meta.TotalPages);
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsOnlyAvailableFoodItems()
     {
         await using var context = new FoodOrderingDbContext(
