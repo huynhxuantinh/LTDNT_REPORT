@@ -75,12 +75,39 @@ public sealed class AuthServiceTests
         Assert.NotNull(context.RefreshTokens.Single().RevokedAt);
     }
 
+    [Fact]
+    public async Task RefreshAsync_RotatesValidRefreshToken()
+    {
+        await using var context = CreateContext();
+        context.Roles.Add(new Role { RoleId = 1, RoleName = "Member" });
+        var user = AddMember(context, "a@example.com", "Password1");
+        context.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.UserId,
+            TokenHash = AuthService.HashToken("old-refresh-token"),
+            ExpiresAt = DateTime.UtcNow.AddDays(1),
+        });
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+
+        var result = await service.RefreshAsync(new RefreshTokenRequest("old-refresh-token"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.Error);
+        Assert.Equal("access-token", result.Value!.AccessToken);
+        Assert.NotEqual("old-refresh-token", result.Value.RefreshToken);
+        Assert.Equal(2, context.RefreshTokens.Count());
+        Assert.NotNull(context.RefreshTokens.Single(x => x.TokenHash == AuthService.HashToken("old-refresh-token")).RevokedAt);
+    }
+
     private static FoodOrderingDbContext CreateContext() => new(
         new DbContextOptionsBuilder<FoodOrderingDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
 
-    private static AuthService CreateService(FoodOrderingDbContext context) => new(context, new FakeTokenService());
+    private static AuthService CreateService(FoodOrderingDbContext context) => new(
+        context,
+        new FakeTokenService(),
+        new JwtOptions { Issuer = "test", Audience = "test", Key = "a-test-key-that-is-at-least-thirty-two-bytes" });
 
     private static User AddMember(FoodOrderingDbContext context, string email, string password)
     {

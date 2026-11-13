@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/admin_categories_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
+import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,26 +17,57 @@ class _LoginPageState extends State<LoginPage> {
   final _password = TextEditingController();
   bool _loading = false;
   @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await SessionHelper.save(await AuthApi.login(email: _email.text.trim(), password: _password.text));
+      await SessionHelper.save(
+        await AuthApi.login(
+          email: _email.text.trim(),
+          password: _password.text,
+        ),
+      );
       if (mounted) widget.onSessionChanged();
-    } on ApiException catch (error) { _message(error.message); }
-    finally { if (mounted) setState(() => _loading = false); }
+    } on ApiException catch (error) {
+      _message(error.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đăng nhập')),
-    body: _FormLayout(formKey: _formKey, children: [
-      _emailField(_email), _passwordField(_password, 'Mật khẩu'), const SizedBox(height: 16),
-      FilledButton(onPressed: _loading ? null : _submit, child: Text(_loading ? 'Đang đăng nhập...' : 'Đăng nhập')),
-      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())), child: const Text('Chưa có tài khoản? Đăng ký')),
-    ]),
+    body: _FormLayout(
+      formKey: _formKey,
+      children: [
+        _emailField(_email),
+        _passwordField(_password, 'Mật khẩu'),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: _loading ? null : _submit,
+          child: Text(_loading ? 'Đang đăng nhập...' : 'Đăng nhập'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RegisterPage()),
+          ),
+          child: const Text('Chưa có tài khoản? Đăng ký'),
+        ),
+      ],
+    ),
   );
-  void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
+  void _message(String text) {
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 }
 
 class RegisterPage extends StatefulWidget {
@@ -50,29 +83,65 @@ class _RegisterPageState extends State<RegisterPage> {
   final _password = TextEditingController();
   bool _loading = false;
   @override
-  void dispose() { _name.dispose(); _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await AuthApi.register(fullName: _name.text.trim(), email: _email.text.trim(), password: _password.text);
+      await AuthApi.register(
+        fullName: _name.text.trim(),
+        email: _email.text.trim(),
+        password: _password.text,
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đăng ký thành công. Hãy đăng nhập.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng ký thành công. Hãy đăng nhập.')),
+      );
       Navigator.pop(context);
-    } on ApiException catch (error) { _message(error.message); }
-    finally { if (mounted) setState(() => _loading = false); }
+    } on ApiException catch (error) {
+      _message(error.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đăng ký')),
-    body: _FormLayout(formKey: _formKey, children: [
-      TextFormField(controller: _name, decoration: const InputDecoration(labelText: 'Họ và tên'), validator: _required),
-      _emailField(_email), _passwordField(_password, 'Mật khẩu'),
-      const Padding(padding: EdgeInsets.only(top: 8), child: Text('Mật khẩu có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số.')),
-      const SizedBox(height: 16), FilledButton(onPressed: _loading ? null : _submit, child: Text(_loading ? 'Đang đăng ký...' : 'Đăng ký')),
-    ]),
+    body: _FormLayout(
+      formKey: _formKey,
+      children: [
+        TextFormField(
+          controller: _name,
+          decoration: const InputDecoration(labelText: 'Họ và tên'),
+          validator: _required,
+        ),
+        _emailField(_email),
+        _passwordField(_password, 'Mật khẩu'),
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'Mật khẩu có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số.',
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: _loading ? null : _submit,
+          child: Text(_loading ? 'Đang đăng ký...' : 'Đăng ký'),
+        ),
+      ],
+    ),
   );
-  void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
+  void _message(String text) {
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 }
 
 class AccountHome extends StatefulWidget {
@@ -84,32 +153,109 @@ class AccountHome extends StatefulWidget {
 
 class _AccountHomeState extends State<AccountHome> {
   bool _loading = false;
+  String? _role;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final role = await SessionHelper.role;
+    if (mounted) setState(() => _role = role);
+  }
+
+  void _openAdminUsers() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          role: _role,
+          allowedRoles: const {'Admin'},
+          child: const AdminUserManagementPage(),
+        ),
+      ),
+    );
+  }
+
+  void _openAdminCategories() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          role: _role,
+          allowedRoles: const {'Admin'},
+          child: const AdminCategoriesPage(),
+        ),
+      ),
+    );
+  }
+
   Future<void> _logout() async {
     setState(() => _loading = true);
     try {
       final accessToken = await SessionHelper.accessToken;
       final refreshToken = await SessionHelper.refreshToken;
-      if (accessToken != null && refreshToken != null) await AuthApi.logout(accessToken: accessToken, refreshToken: refreshToken);
-    } on ApiException catch (error) { _message(error.message); }
-    finally {
+      if (accessToken != null && refreshToken != null)
+        await AuthApi.logout(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+    } on ApiException catch (error) {
+      _message(error.message);
+    } finally {
       await SessionHelper.clear();
-      if (mounted) { setState(() => _loading = false); widget.onSessionChanged(); }
+      if (mounted) {
+        setState(() => _loading = false);
+        widget.onSessionChanged();
+      }
     }
   }
+
   Future<void> _changePassword() async {
-    final changed = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const ChangePasswordPage()));
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
+    );
     if (changed == true && mounted) widget.onSessionChanged();
   }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đặt món ăn')),
-    body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('Bạn đã đăng nhập.'), const SizedBox(height: 12),
-      OutlinedButton(onPressed: _changePassword, child: const Text('Đổi mật khẩu')),
-      FilledButton.tonal(onPressed: _loading ? null : _logout, child: Text(_loading ? 'Đang thoát...' : 'Đăng xuất')),
-    ])),
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_role == 'Admin')
+            OutlinedButton(
+              onPressed: _openAdminCategories,
+              child: const Text('Quản lý danh mục'),
+            ),
+          if (_role == 'Admin')
+            OutlinedButton(
+              onPressed: _openAdminUsers,
+              child: const Text('Quản lý người dùng'),
+            ),
+          const Text('Bạn đã đăng nhập.'),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _changePassword,
+            child: const Text('Đổi mật khẩu'),
+          ),
+          FilledButton.tonal(
+            onPressed: _loading ? null : _logout,
+            child: Text(_loading ? 'Đang thoát...' : 'Đăng xuất'),
+          ),
+        ],
+      ),
+    ),
   );
-  void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
+  void _message(String text) {
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 }
 
 class ChangePasswordPage extends StatefulWidget {
@@ -124,30 +270,59 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _next = TextEditingController();
   bool _loading = false;
   @override
-  void dispose() { _current.dispose(); _next.dispose(); super.dispose(); }
+  void dispose() {
+    _current.dispose();
+    _next.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
       final token = await SessionHelper.accessToken;
-      if (token == null) throw const ApiException('Phiên đăng nhập đã hết hạn.');
-      await AuthApi.changePassword(accessToken: token, currentPassword: _current.text, newPassword: _next.text);
+      if (token == null)
+        throw const ApiException('Phiên đăng nhập đã hết hạn.');
+      await AuthApi.changePassword(
+        accessToken: token,
+        currentPassword: _current.text,
+        newPassword: _next.text,
+      );
       await SessionHelper.clear();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công. Hãy đăng nhập lại.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đổi mật khẩu thành công. Hãy đăng nhập lại.'),
+        ),
+      );
       Navigator.pop(context, true);
-    } on ApiException catch (error) { _message(error.message); }
-    finally { if (mounted) setState(() => _loading = false); }
+    } on ApiException catch (error) {
+      _message(error.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đổi mật khẩu')),
-    body: _FormLayout(formKey: _formKey, children: [
-      _passwordField(_current, 'Mật khẩu hiện tại'), _passwordField(_next, 'Mật khẩu mới'),
-      const SizedBox(height: 16), FilledButton(onPressed: _loading ? null : _submit, child: Text(_loading ? 'Đang cập nhật...' : 'Đổi mật khẩu')),
-    ]),
+    body: _FormLayout(
+      formKey: _formKey,
+      children: [
+        _passwordField(_current, 'Mật khẩu hiện tại'),
+        _passwordField(_next, 'Mật khẩu mới'),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: _loading ? null : _submit,
+          child: Text(_loading ? 'Đang cập nhật...' : 'Đổi mật khẩu'),
+        ),
+      ],
+    ),
   );
-  void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
+  void _message(String text) {
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 }
 
 class _FormLayout extends StatelessWidget {
@@ -155,12 +330,40 @@ class _FormLayout extends StatelessWidget {
   final List<Widget> children;
   const _FormLayout({required this.formKey, required this.children});
   @override
-  Widget build(BuildContext context) => SafeArea(child: Center(child: SingleChildScrollView(
-    padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420),
-      child: Form(key: formKey, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children))),
-  )));
+  Widget build(BuildContext context) => SafeArea(
+    child: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
-TextFormField _emailField(TextEditingController controller) => TextFormField(controller: controller, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (value) => value != null && value.contains('@') ? null : 'Email không hợp lệ.');
-TextFormField _passwordField(TextEditingController controller, String label) => TextFormField(controller: controller, obscureText: true, decoration: InputDecoration(labelText: label), validator: (value) => value != null && value.length >= 8 ? null : 'Mật khẩu tối thiểu 8 ký tự.');
-String? _required(String? value) => value == null || value.trim().isEmpty ? 'Trường này là bắt buộc.' : null;
+TextFormField _emailField(TextEditingController controller) => TextFormField(
+  controller: controller,
+  keyboardType: TextInputType.emailAddress,
+  decoration: const InputDecoration(labelText: 'Email'),
+  validator: (value) =>
+      value != null && value.contains('@') ? null : 'Email không hợp lệ.',
+);
+TextFormField _passwordField(TextEditingController controller, String label) =>
+    TextFormField(
+      controller: controller,
+      obscureText: true,
+      decoration: InputDecoration(labelText: label),
+      validator: (value) => value != null && value.length >= 8
+          ? null
+          : 'Mật khẩu tối thiểu 8 ký tự.',
+    );
+String? _required(String? value) =>
+    value == null || value.trim().isEmpty ? 'Trường này là bắt buộc.' : null;

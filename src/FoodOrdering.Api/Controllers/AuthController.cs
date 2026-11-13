@@ -1,12 +1,15 @@
 using System.Security.Claims;
 using FoodOrdering.Api.Auth;
+using FoodOrdering.Api.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FoodOrdering.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public sealed class AuthController(AuthService authService) : ControllerBase
 {
     [HttpPost("register")]
@@ -15,7 +18,7 @@ public sealed class AuthController(AuthService authService) : ControllerBase
         var result = await authService.RegisterAsync(request, cancellationToken);
         return result.IsSuccess
             ? StatusCode(StatusCodes.Status201Created, new { userId = result.Value, message = "Đăng ký thành công." })
-            : BadRequest(new { message = result.Error });
+            : BadRequest(ApiErrorResponse.Create("registration_failed", result.Error!));
     }
 
     [HttpPost("login")]
@@ -24,7 +27,16 @@ public sealed class AuthController(AuthService authService) : ControllerBase
         var result = await authService.LoginAsync(request, cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
-            : Unauthorized(new { message = result.Error });
+            : Unauthorized(ApiErrorResponse.Create("invalid_credentials", result.Error!));
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var result = await authService.RefreshAsync(request, cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : Unauthorized(ApiErrorResponse.Create("invalid_refresh_token", result.Error!));
     }
 
     [Authorize]
@@ -37,7 +49,7 @@ public sealed class AuthController(AuthService authService) : ControllerBase
         }
 
         var result = await authService.ChangePasswordAsync(userId, request, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(new { message = result.Error });
+        return result.IsSuccess ? NoContent() : BadRequest(ApiErrorResponse.Create("change_password_failed", result.Error!));
     }
 
     [Authorize]

@@ -17,6 +17,8 @@ public sealed record ChangePasswordRequest(
 
 public sealed record LogoutRequest([param: Required, StringLength(512, MinimumLength = 32)] string RefreshToken);
 
+public sealed record RefreshTokenRequest([param: Required, StringLength(512, MinimumLength = 32)] string RefreshToken);
+
 public sealed record AuthResponse(Guid UserId, string FullName, string Email, string Role, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);
 
 public sealed record ServiceResult<T>(bool IsSuccess, T? Value, string? Error)

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrdering.Api.Auth;
 
-public sealed class AuthService(FoodOrderingDbContext dbContext, ITokenService tokenService)
+public sealed class AuthService(FoodOrderingDbContext dbContext, ITokenService tokenService, JwtOptions jwtOptions)
 {
     private const int RefreshTokenDays = 30;
 
@@ -77,7 +77,43 @@ public sealed class AuthService(FoodOrderingDbContext dbContext, ITokenService t
             user.Role?.RoleName ?? "Member",
             tokenService.CreateAccessToken(user),
             refreshToken,
-            DateTime.UtcNow.AddMinutes(30)));
+            DateTime.UtcNow.AddMinutes(jwtOptions.AccessTokenMinutes)));
+    }
+
+    public async Task<ServiceResult<AuthResponse>> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var tokenHash = HashToken(request.RefreshToken);
+        var refreshToken = await dbContext.RefreshTokens
+            .Include(item => item.User)
+            .ThenInclude(user => user!.Role)
+            .SingleOrDefaultAsync(item => item.TokenHash == tokenHash, cancellationToken);
+
+        var user = refreshToken?.User;
+        if (user is null || !user.IsActive || refreshToken!.RevokedAt is not null || refreshToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            return ServiceResult<AuthResponse>.Failure("Refresh token không hợp lệ hoặc đã hết hạn.");
+        }
+
+        refreshToken.RevokedAt = DateTime.UtcNow;
+        var newRefreshToken = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(64));
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            RefreshTokenId = Guid.NewGuid(),
+            UserId = user.UserId,
+            TokenHash = HashToken(newRefreshToken),
+            ExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays),
+            CreatedAt = DateTime.UtcNow,
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<AuthResponse>.Success(new AuthResponse(
+            user.UserId,
+            user.FullName,
+            user.Email,
+            user.Role?.RoleName ?? "Member",
+            tokenService.CreateAccessToken(user),
+            newRefreshToken,
+            DateTime.UtcNow.AddMinutes(jwtOptions.AccessTokenMinutes)));
     }
 
     public async Task<ServiceResult<bool>> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken)
