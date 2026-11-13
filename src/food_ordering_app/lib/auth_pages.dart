@@ -4,6 +4,7 @@ import 'package:trek_bikes_app/admin_food_items_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/home_categories.dart';
 import 'package:trek_bikes_app/home_latest_foods.dart';
+import 'package:trek_bikes_app/member_category_api.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -161,6 +162,7 @@ class AccountHome extends StatefulWidget {
 class _AccountHomeState extends State<AccountHome> {
   bool _loading = false;
   String? _role;
+  MemberCategory? _selectedCategory;
 
   @override
   void initState() {
@@ -248,8 +250,19 @@ class _AccountHomeState extends State<AccountHome> {
     appBar: AppBar(title: const Text('Đặt món ăn')),
     body: Column(
       children: [
-        const SizedBox(height: 170, child: HomeCategories()),
-        const Expanded(child: HomeLatestFoods()),
+        SizedBox(
+          height: 170,
+          child: HomeCategories(
+            onSelected: (category) =>
+                setState(() => _selectedCategory = category),
+          ),
+        ),
+        Expanded(
+          child: HomeLatestFoods(
+            categoryId: _selectedCategory?.categoryId,
+            categoryName: _selectedCategory?.name,
+          ),
+        ),
         SafeArea(
           top: false,
           child: Padding(

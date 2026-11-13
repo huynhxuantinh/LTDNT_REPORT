@@ -61,15 +61,17 @@ class MemberFoodPage {
 }
 
 class MemberFoodApi {
-  static Future<MemberFoodPage> getLatest({
+  static Future<MemberFoodPage> getPage({
     required int page,
     required int pageSize,
+    int? categoryId,
   }) async {
     try {
+      final query = <String, String>{'page': '$page', 'pageSize': '$pageSize'};
+      if (categoryId != null) query['categoryId'] = '$categoryId';
       final response = await http.get(
-        Uri.parse(
-          '${ApiConfig.baseUrl}/api/foods',
-        ).replace(queryParameters: {'page': '$page', 'pageSize': '$pageSize'}),
+        Uri.parse('${ApiConfig.baseUrl}/api/foods')
+            .replace(queryParameters: query),
       );
       if (response.statusCode != 200) {
         throw const ApiException('Không thể tải món ăn.');

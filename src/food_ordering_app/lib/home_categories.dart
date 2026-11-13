@@ -3,7 +3,9 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/member_category_api.dart';
 
 class HomeCategories extends StatefulWidget {
-  const HomeCategories({super.key});
+  const HomeCategories({super.key, required this.onSelected});
+
+  final ValueChanged<MemberCategory> onSelected;
 
   @override
   State<HomeCategories> createState() => _HomeCategoriesState();
@@ -45,6 +47,7 @@ class _HomeCategoriesState extends State<HomeCategories> {
           ...categories.map(
             (category) => Card(
               child: ListTile(
+                onTap: () => widget.onSelected(category),
                 leading: const CircleAvatar(child: Icon(Icons.restaurant_menu)),
                 title: Text(category.name),
                 subtitle: category.description?.isNotEmpty == true

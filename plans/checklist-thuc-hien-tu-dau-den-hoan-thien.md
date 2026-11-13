@@ -105,7 +105,7 @@
 
 - [x] Trang chủ hiển thị category.
 - [x] Hiển thị món mới nhất có phân trang.
-- [ ] Hiển thị món theo category có phân trang.
+- [x] Hiển thị món theo category có phân trang.
 - [ ] Tìm kiếm món có phân trang.
 - [ ] Trang chi tiết món.
 - [ ] Nút thêm giỏ ở danh sách và chi tiết.

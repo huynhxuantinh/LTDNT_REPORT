@@ -3,7 +3,10 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 
 class HomeLatestFoods extends StatefulWidget {
-  const HomeLatestFoods({super.key});
+  const HomeLatestFoods({super.key, this.categoryId, this.categoryName});
+
+  final int? categoryId;
+  final String? categoryName;
 
   @override
   State<HomeLatestFoods> createState() => _HomeLatestFoodsState();
@@ -20,8 +23,20 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
     _reload();
   }
 
-  void _reload() =>
-      _foods = MemberFoodApi.getLatest(page: _page, pageSize: _pageSize);
+  @override
+  void didUpdateWidget(covariant HomeLatestFoods oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categoryId != widget.categoryId) {
+      _page = 1;
+      _reload();
+    }
+  }
+
+  void _reload() => _foods = MemberFoodApi.getPage(
+    page: _page,
+    pageSize: _pageSize,
+    categoryId: widget.categoryId,
+  );
 
   void _goToPage(int page) {
     setState(() {
@@ -51,7 +66,9 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Món mới nhất',
+                widget.categoryName == null
+                    ? 'Món mới nhất'
+                    : 'Món: ${widget.categoryName}',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
