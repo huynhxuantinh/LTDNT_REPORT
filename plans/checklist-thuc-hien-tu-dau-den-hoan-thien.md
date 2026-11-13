@@ -149,12 +149,12 @@
 - [x] Staff tạo đơn `DineIn`, thêm/sửa/xóa món.
 - [x] Khi tạo `DineIn`, bàn chuyển `Occupied` trong transaction.
 - [x] Staff tạo đơn `TakeAway`.
-- [ ] Staff xác nhận thanh toán tiền mặt cho đơn offline.
-- [ ] Khi thanh toán/hoàn thành/hủy DineIn, bàn trở lại `Available`.
-- [ ] Luồng trạng thái Delivery: `Pending` → `Confirmed` → `Preparing` → `Delivering` → `Completed`/`Cancelled`.
-- [ ] Luồng trạng thái DineIn/TakeAway: `Pending` → `Confirmed` → `Preparing` → `Completed`/`Cancelled`.
+- [x] Staff xác nhận thanh toán tiền mặt cho đơn offline.
+- [x] Khi thanh toán/hoàn thành/hủy DineIn, bàn trở lại `Available`.
+- [x] Luồng trạng thái Delivery: `Pending` → `Confirmed` → `Preparing` → `Delivering` → `Completed`/`Cancelled`.
+- [x] Luồng trạng thái DineIn/TakeAway: `Pending` → `Confirmed` → `Preparing` → `Completed`/`Cancelled`.
 - [ ] Flutter Staff: màn chọn loại đơn, chọn bàn, tạo đơn và xử lý đơn.
-- [ ] Test đồng thời: không cho hai Staff chọn cùng một bàn.
+- [x] Test đồng thời: không cho hai Staff chọn cùng một bàn.
 
 ## Giai đoạn 9 — Điểm cộng nâng cao
 

@@ -33,6 +33,7 @@ public sealed class AdminOrdersController(FoodOrderingDbContext db) : Controller
         var status = await db.OrderStatuses.SingleOrDefaultAsync(x => x.Name == request.Status, ct);
         if (status is null) return BadRequest(ApiErrorResponse.Create("invalid_status", "Trạng thái không hợp lệ."));
         order.OrderStatusId = status.OrderStatusId; order.UpdatedAt = DateTime.UtcNow; db.OrderStatusHistories.Add(new FoodOrdering.Api.Models.OrderStatusHistory { OrderId = orderId, OrderStatusId = status.OrderStatusId, UpdatedByUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), CreatedAt = DateTime.UtcNow }); await db.SaveChangesAsync(ct);
+        if (order.OrderType == "DineIn" && request.Status is "Completed" or "Cancelled" && order.TableId is int tableId) { var table = await db.DiningTables.FindAsync([tableId], ct); if (table is not null) { table.Status = "Available"; table.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(ct); } }
         return Ok(new { orderId, status = request.Status });
     }
     [HttpGet]
