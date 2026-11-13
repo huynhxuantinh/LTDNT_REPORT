@@ -103,7 +103,7 @@
 
 ### Member mua online
 
-- [ ] Trang chủ hiển thị category.
+- [x] Trang chủ hiển thị category.
 - [ ] Hiển thị món mới nhất có phân trang.
 - [ ] Hiển thị món theo category có phân trang.
 - [ ] Tìm kiếm món có phân trang.

@@ -28,6 +28,7 @@ builder.Services.AddDbContext<FoodOrderingDbContext>(options => options.UseSqlSe
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AdminUserService>();
 builder.Services.AddScoped<AdminCategoryService>();
+builder.Services.AddScoped<MemberCategoryService>();
 builder.Services.AddScoped<AdminFoodItemService>();
 builder.Services.AddScoped<MemberFoodService>();
 builder.Services.AddSingleton<IFoodImageStorage, FoodImageStorage>();

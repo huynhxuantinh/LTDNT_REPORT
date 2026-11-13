@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/admin_categories_page.dart';
 import 'package:trek_bikes_app/admin_food_items_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
+import 'package:trek_bikes_app/home_categories.dart';
 import 'package:trek_bikes_app/role_guard.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 
@@ -244,37 +245,46 @@ class _AccountHomeState extends State<AccountHome> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đặt món ăn')),
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_role == 'Admin')
-            OutlinedButton(
-              onPressed: _openAdminFoodItems,
-              child: const Text('Quản lý món ăn'),
+    body: Column(
+      children: [
+        const Expanded(child: HomeCategories()),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_role == 'Admin')
+                  OutlinedButton(
+                    onPressed: _openAdminFoodItems,
+                    child: const Text('Quản lý món ăn'),
+                  ),
+                if (_role == 'Admin')
+                  OutlinedButton(
+                    onPressed: _openAdminCategories,
+                    child: const Text('Quản lý danh mục'),
+                  ),
+                if (_role == 'Admin')
+                  OutlinedButton(
+                    onPressed: _openAdminUsers,
+                    child: const Text('Quản lý người dùng'),
+                  ),
+                const Text('Bạn đã đăng nhập.'),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: _changePassword,
+                  child: const Text('Đổi mật khẩu'),
+                ),
+                FilledButton.tonal(
+                  onPressed: _loading ? null : _logout,
+                  child: Text(_loading ? 'Đang thoát...' : 'Đăng xuất'),
+                ),
+              ],
             ),
-          if (_role == 'Admin')
-            OutlinedButton(
-              onPressed: _openAdminCategories,
-              child: const Text('Quản lý danh mục'),
-            ),
-          if (_role == 'Admin')
-            OutlinedButton(
-              onPressed: _openAdminUsers,
-              child: const Text('Quản lý người dùng'),
-            ),
-          const Text('Bạn đã đăng nhập.'),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _changePassword,
-            child: const Text('Đổi mật khẩu'),
           ),
-          FilledButton.tonal(
-            onPressed: _loading ? null : _logout,
-            child: Text(_loading ? 'Đang thoát...' : 'Đăng xuất'),
-          ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
   void _message(String text) {
