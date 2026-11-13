@@ -19,6 +19,7 @@ public sealed record CategoryActionResult<T>(bool IsSuccess, T? Value, string? E
 
 public sealed class AdminCategoryService(FoodOrderingDbContext dbContext)
 {
+    public async Task<CategoryActionResult<string?>> SetImageAsync(int id,string? image,CancellationToken ct){var c=await dbContext.Categories.FindAsync([id],ct);if(c is null)return CategoryActionResult<string?>.Failure("category_not_found","Không tìm thấy danh mục.");var old=c.ImageUrl;c.ImageUrl=image;c.UpdatedAt=DateTime.UtcNow;await dbContext.SaveChangesAsync(ct);return CategoryActionResult<string?>.Success(old);}
     public async Task<IReadOnlyList<CategoryItem>> GetAllAsync(CancellationToken cancellationToken) =>
         await dbContext.Categories.AsNoTracking()
             .OrderBy(category => category.Name)

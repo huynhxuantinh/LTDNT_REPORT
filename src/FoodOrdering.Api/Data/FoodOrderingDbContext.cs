@@ -19,6 +19,7 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
     public DbSet<FoodOrder> Orders => Set<FoodOrder>();
     public DbSet<OrderDetail> OrderDetails => Set<OrderDetail>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -173,5 +174,6 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
             entity.HasIndex(x => x.ProviderTxnCode).IsUnique().HasFilter("[ProviderTxnCode] IS NOT NULL");
             entity.HasOne(x => x.Order).WithMany(x => x.Payments).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<OrderStatusHistory>(entity => { entity.ToTable("OrderStatusHistories"); entity.HasKey(x => x.OrderStatusHistoryId); entity.HasIndex(x => x.OrderId); });
     }
 }

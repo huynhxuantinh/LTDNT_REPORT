@@ -2,14 +2,19 @@ using FoodOrdering.Api.Categories;
 using FoodOrdering.Api.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FoodOrdering.Api.Uploads;
 
 namespace FoodOrdering.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/categories")]
 [Authorize(Roles = "Admin")]
-public sealed class AdminCategoriesController(AdminCategoryService categoryService) : ControllerBase
+public sealed class AdminCategoriesController(AdminCategoryService categoryService, IFoodImageStorage storage) : ControllerBase
 {
+    [HttpPost("{categoryId:int}/image")]
+    public async Task<IActionResult> UploadImage(int categoryId,IFormFile image,CancellationToken ct){var url=await storage.SaveAsync(image,ct);var result=await categoryService.SetImageAsync(categoryId,url,ct);if(!result.IsSuccess){await storage.DeleteAsync(url,ct);return NotFound();}await storage.DeleteAsync(result.Value,ct);return Ok(new{imageUrl=url});}
+    [HttpDelete("{categoryId:int}/image")]
+    public async Task<IActionResult> DeleteImage(int categoryId,CancellationToken ct){var result=await categoryService.SetImageAsync(categoryId,null,ct);if(!result.IsSuccess)return NotFound();await storage.DeleteAsync(result.Value,ct);return NoContent();}
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CategoryItem>>> GetAll(CancellationToken cancellationToken) =>
         Ok(await categoryService.GetAllAsync(cancellationToken));

@@ -118,3 +118,5 @@ public sealed class Payment
     public DateTime? PaidAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public sealed class OrderStatusHistory { public long OrderStatusHistoryId { get; set; } public long OrderId { get; set; } public byte OrderStatusId { get; set; } public Guid UpdatedByUserId { get; set; } public DateTime CreatedAt { get; set; } }

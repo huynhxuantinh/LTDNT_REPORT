@@ -128,27 +128,27 @@
 
 ## Giai đoạn 6 — Quản lý đơn hàng (Admin)
 
-- [ ] Admin xem danh sách toàn bộ đơn có phân trang.
-- [ ] Tìm kiếm theo mã đơn/tên/SĐT.
-- [ ] Lọc theo ngày, trạng thái, loại đơn và thanh toán.
-- [ ] Cập nhật trạng thái theo đúng luồng; không cho nhảy trạng thái sai.
-- [ ] Lưu `UpdatedAt` và user thực hiện cập nhật trạng thái đơn.
-- [ ] Xem chi tiết đơn và lịch sử thanh toán.
+- [x] Admin xem danh sách toàn bộ đơn có phân trang.
+- [x] Tìm kiếm theo mã đơn/tên/SĐT.
+- [x] Lọc theo ngày, trạng thái, loại đơn và thanh toán.
+- [x] Cập nhật trạng thái theo đúng luồng; không cho nhảy trạng thái sai.
+- [x] Lưu `UpdatedAt` và user thực hiện cập nhật trạng thái đơn.
+- [x] Xem chi tiết đơn và lịch sử thanh toán.
 
 ## Giai đoạn 7 — Điểm cộng nhanh
 
-- [ ] Upload ảnh category đủ thêm/sửa/xóa.
-- [ ] Món liên quan cùng category, có phân trang.
-- [ ] Member tìm kiếm đơn hàng.
+- [x] Upload ảnh category đủ thêm/sửa/xóa.
+- [x] Món liên quan cùng category, có phân trang.
+- [x] Member tìm kiếm đơn hàng.
 - [ ] Admin tìm kiếm và lọc đơn theo ngày.
 
 ## Giai đoạn 8 — Bán offline và bàn ăn
 
-- [ ] Admin CRUD bàn ăn, không xóa bàn đang có đơn mở.
-- [ ] Staff xem danh sách bàn, chỉ chọn bàn `Available` cho `DineIn`.
-- [ ] Staff tạo đơn `DineIn`, thêm/sửa/xóa món.
-- [ ] Khi tạo `DineIn`, bàn chuyển `Occupied` trong transaction.
-- [ ] Staff tạo đơn `TakeAway`.
+- [x] Admin CRUD bàn ăn, không xóa bàn đang có đơn mở.
+- [x] Staff xem danh sách bàn, chỉ chọn bàn `Available` cho `DineIn`.
+- [x] Staff tạo đơn `DineIn`, thêm/sửa/xóa món.
+- [x] Khi tạo `DineIn`, bàn chuyển `Occupied` trong transaction.
+- [x] Staff tạo đơn `TakeAway`.
 - [ ] Staff xác nhận thanh toán tiền mặt cho đơn offline.
 - [ ] Khi thanh toán/hoàn thành/hủy DineIn, bàn trở lại `Available`.
 - [ ] Luồng trạng thái Delivery: `Pending` → `Confirmed` → `Preparing` → `Delivering` → `Completed`/`Cancelled`.

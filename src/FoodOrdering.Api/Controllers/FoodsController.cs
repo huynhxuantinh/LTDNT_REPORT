@@ -10,6 +10,14 @@ namespace FoodOrdering.Api.Controllers;
 [AllowAnonymous]
 public sealed class FoodsController(MemberFoodService foodService) : ControllerBase
 {
+    [HttpGet("{foodItemId:int}/related")]
+    public async Task<ActionResult<PagedResponse<MemberFoodItem>>> Related(int foodItemId, [FromQuery] PageRequest pageRequest, CancellationToken cancellationToken)
+    {
+        var item = await foodService.GetByIdAsync(foodItemId, cancellationToken);
+        if (item is null) return NotFound();
+        var page = await foodService.GetAllAsync(pageRequest, item.CategoryId, null, cancellationToken);
+        return Ok(PagedResponse<MemberFoodItem>.Create(page.Data.Where(x => x.FoodItemId != foodItemId).ToList(), page.Meta.Page, page.Meta.PageSize, Math.Max(0, page.Meta.TotalItems - 1)));
+    }
     [HttpGet("{foodItemId:int}")]
     public async Task<ActionResult<MemberFoodItem>> GetById(int foodItemId, CancellationToken cancellationToken)
     {

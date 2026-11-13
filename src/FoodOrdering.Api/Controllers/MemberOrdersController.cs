@@ -10,7 +10,7 @@ namespace FoodOrdering.Api.Controllers;
 public sealed class MemberOrdersController(FoodOrderingDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct) { var userId=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); return Ok(await db.Orders.AsNoTracking().Where(x=>x.UserId==userId).OrderByDescending(x=>x.CreatedAt).Select(x=>new {x.OrderId,x.OrderCode,x.TotalAmount,x.PaymentStatus,x.CreatedAt,Status=x.OrderStatus!.Name}).ToListAsync(ct)); }
+    public async Task<IActionResult> GetAll([FromQuery] string? search, CancellationToken ct) { var userId=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); var query=db.Orders.AsNoTracking().Where(x=>x.UserId==userId); if(!string.IsNullOrWhiteSpace(search)){var k=search.Trim();query=query.Where(x=>x.OrderCode.Contains(k)||(x.ReceiverName??"").Contains(k)||(x.ReceiverPhone??"").Contains(k));} return Ok(await query.OrderByDescending(x=>x.CreatedAt).Select(x=>new {x.OrderId,x.OrderCode,x.TotalAmount,x.PaymentStatus,x.CreatedAt,Status=x.OrderStatus!.Name}).ToListAsync(ct)); }
     [HttpGet("{orderId:long}")]
     public async Task<IActionResult> Get(long orderId,CancellationToken ct) { var userId=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); var order=await db.Orders.AsNoTracking().Where(x=>x.OrderId==orderId&&x.UserId==userId).Select(x=>new {x.OrderId,x.OrderCode,x.TotalAmount,x.PaymentStatus,x.CreatedAt,Status=x.OrderStatus!.Name,Items=x.OrderDetails.Select(d=>new {d.FoodNameSnapshot,d.UnitPrice,d.Quantity})}).SingleOrDefaultAsync(ct); return order is null?NotFound():Ok(order); }
 }
