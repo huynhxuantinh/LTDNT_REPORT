@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:trek_bikes_app/vnpay_api.dart';
+import 'package:trek_bikes_app/payment_navigation.dart';
 
 class VnPayPaymentPage extends StatefulWidget {
   final int orderId;
-  const VnPayPaymentPage({super.key, required this.orderId});
+  final Future<VnPayInfo> Function(int)? loadInfo;
+  final Future<String> Function(int)? checkStatus;
+  final Future<bool> Function(int)? confirmDemo;
+  const VnPayPaymentPage({
+    super.key,
+    required this.orderId,
+    this.loadInfo,
+    this.checkStatus,
+    this.confirmDemo,
+  });
 
   @override
   State<VnPayPaymentPage> createState() => _VnPayPaymentPageState();
@@ -30,8 +40,14 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       error = null;
     });
     try {
-      final res = await VnPayApi.getVnPayUrl(widget.orderId);
+      final res = await (widget.loadInfo ?? VnPayApi.getVnPayUrl)(
+        widget.orderId,
+      );
       if (mounted) {
+        if (res.paymentStatus == 'Paid') {
+          returnHomeAfterPayment(context);
+          return;
+        }
         setState(() {
           info = res;
           paymentStatus = res.paymentStatus;
@@ -52,38 +68,52 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
     if (info == null) return;
     final uri = Uri.parse(info!.paymentUrl);
     try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể mở cổng VNPay trên trình duyệt.')),
+          const SnackBar(
+            content: Text('Không thể mở cổng VNPay trên trình duyệt.'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi mở trình duyệt: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi mở trình duyệt: $e')));
       }
     }
   }
 
   Future<void> _checkStatus() async {
     try {
-      final status = await VnPayApi.getPaymentStatus(widget.orderId);
+      final status = await (widget.checkStatus ?? VnPayApi.getPaymentStatus)(
+        widget.orderId,
+      );
       if (mounted) {
+        if (status == 'Paid') {
+          returnHomeAfterPayment(context);
+          return;
+        }
         setState(() => paymentStatus = status);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(status == 'Paid' ? 'Đơn hàng đã thanh toán thành công!' : 'Đơn hàng chưa ghi nhận thanh toán.'),
+            content: Text(
+              status == 'Paid'
+                  ? 'Đơn hàng đã thanh toán thành công!'
+                  : 'Đơn hàng chưa ghi nhận thanh toán.',
+            ),
             backgroundColor: status == 'Paid' ? Colors.green : Colors.orange,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi kiểm tra trạng thái: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi kiểm tra trạng thái: $e')));
       }
     }
   }
@@ -91,16 +121,12 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
   Future<void> _simulateSuccess() async {
     setState(() => simulating = true);
     try {
-      final ok = await VnPayApi.simulateSuccess(widget.orderId);
+      final ok = await (widget.confirmDemo ?? VnPayApi.simulateSuccess)(
+        widget.orderId,
+      );
       if (mounted) {
         if (ok) {
-          setState(() => paymentStatus = 'Paid');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Giả lập thanh toán VNPay thành công!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          returnHomeAfterPayment(context, demo: true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Không thể xác nhận thanh toán.')),
@@ -109,9 +135,8 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     } finally {
       if (mounted) setState(() => simulating = false);
@@ -121,7 +146,10 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Đã sao chép $label!'), duration: const Duration(seconds: 1)),
+      SnackBar(
+        content: Text('Đã sao chép $label!'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 
@@ -158,160 +186,200 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(error!),
-                      const SizedBox(height: 8),
-                      ElevatedButton(onPressed: _loadVnPay, child: const Text('Thử lại')),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(error!),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _loadVnPay,
+                    child: const Text('Thử lại'),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Banner trạng thái
-                      if (paymentStatus == 'Paid')
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Banner trạng thái
+                  if (paymentStatus == 'Paid')
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 32,
                           ),
-                          child: const Row(
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'THANH TOÁN VNPAY THÀNH CÔNG',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  'Giao dịch đã được ghi nhận trên hệ thống.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Card tóm tắt đơn
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 32),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('THANH TOÁN VNPAY THÀNH CÔNG',
-                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                    Text('Giao dịch đã được ghi nhận trên hệ thống.',
-                                        style: TextStyle(fontSize: 12, color: Colors.black87)),
-                                  ],
+                              const Icon(
+                                Icons.payment,
+                                color: Colors.blue,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${info!.amount.toStringAsFixed(0)} đ',
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepOrange,
                                 ),
                               ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Mã đơn hàng: ${info!.orderCode}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(
+                                  0xFF005BAA,
+                                ), // Màu xanh đặc trưng VNPay
+                              ),
+                              onPressed: _openPortal,
+                              icon: const Icon(Icons.open_in_browser),
+                              label: const Text(
+                                'Mở cổng thanh toán VNPay Sandbox',
+                                style: TextStyle(fontSize: 15),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-                      // Card tóm tắt đơn
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
+                  // Card hướng dẫn thẻ test Sandbox
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.payment, color: Colors.blue, size: 28),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${info!.amount.toStringAsFixed(0)} đ',
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.deepOrange,
+                              Icon(Icons.credit_card, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text(
+                                'Thẻ test VNPay Sandbox miễn phí',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(),
+                          _buildCardInfoRow('Ngân hàng', 'NCB'),
+                          _buildCardInfoRow('Số thẻ', '9704198526191432152'),
+                          _buildCardInfoRow('Tên chủ thẻ', 'NGUYEN VAN A'),
+                          _buildCardInfoRow('Ngày phát hành', '07/15'),
+                          _buildCardInfoRow('Mã OTP', '123456'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Nút hành động
+                  if (paymentStatus != 'Paid') ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _checkStatus,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Kiểm tra'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: simulating ? null : _simulateSuccess,
+                            icon: simulating
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text('Mã đơn hàng: ${info!.orderCode}', style: const TextStyle(color: Colors.grey)),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: FilledButton.icon(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF005BAA), // Màu xanh đặc trưng VNPay
-                                  ),
-                                  onPressed: _openPortal,
-                                  icon: const Icon(Icons.open_in_browser),
-                                  label: const Text('Mở cổng thanh toán VNPay Sandbox', style: TextStyle(fontSize: 15)),
-                                ),
-                              ),
-                            ],
+                                  )
+                                : const Icon(Icons.check),
+                            label: const Text('Đã chuyển (Demo)'),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Card hướng dẫn thẻ test Sandbox
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.credit_card, color: Colors.blue),
-                                  SizedBox(width: 8),
-                                  Text('Thẻ test VNPay Sandbox miễn phí',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                ],
-                              ),
-                              const Divider(),
-                              _buildCardInfoRow('Ngân hàng', 'NCB'),
-                              _buildCardInfoRow('Số thẻ', '9704198526191432152'),
-                              _buildCardInfoRow('Tên chủ thẻ', 'NGUYEN VAN A'),
-                              _buildCardInfoRow('Ngày phát hành', '07/15'),
-                              _buildCardInfoRow('Mã OTP', '123456'),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Nút hành động
-                      if (paymentStatus != 'Paid') ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _checkStatus,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Kiểm tra'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: simulating ? null : _simulateSuccess,
-                                icon: simulating
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : const Icon(Icons.check),
-                                label: const Text('Đã chuyển (Demo)'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Hoàn tất'),
                         ),
                       ],
-                    ],
-                  ),
-                ),
+                    ),
+                  ] else ...[
+                    FilledButton(
+                      onPressed: () => returnHomeAfterPayment(context),
+                      child: const Text('Hoàn tất'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }
-

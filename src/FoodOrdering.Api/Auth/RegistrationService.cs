@@ -34,7 +34,7 @@ public sealed class RegistrationService(FoodOrderingDbContext db, IConfiguration
         {
             using var smtp = new SmtpClient(config["Smtp:Host"], int.Parse(config["Smtp:Port"] ?? "2525")) { EnableSsl = true, Credentials = new NetworkCredential(config["Smtp:User"], config["Smtp:Password"]) };
             var link = EmailLinks.Create(config, "/email/register", "").Split('?')[0];
-            using var mail = new MailMessage(config["Smtp:From"] ?? "noreply@foodordering.local", email) { Subject = "Xác nhận đăng ký", IsBodyHtml = true, Body = EmailLinks.Html("Xác nhận đăng ký", "Nhập mã 6 số trong ứng dụng. Mã hết hạn sau 10 phút.", link, code) };
+            using var mail = new MailMessage(config["Smtp:From"] ?? "noreply@foodordering.local", email) { Subject = "Xác nhận đăng ký", SubjectEncoding = System.Text.Encoding.UTF8, BodyEncoding = System.Text.Encoding.UTF8, IsBodyHtml = true, Body = EmailLinks.Html("Xác nhận đăng ký", "Nhập mã 6 số trong ứng dụng. Mã hết hạn sau 10 phút.", link, code) };
             await smtp.SendMailAsync(mail, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

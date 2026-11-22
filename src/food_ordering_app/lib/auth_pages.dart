@@ -17,7 +17,18 @@ import 'package:trek_bikes_app/session_helper.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onSessionChanged;
-  const LoginPage({super.key, required this.onSessionChanged});
+  final Future<AuthSession> Function({
+    required String email,
+    required String password,
+  })?
+  login;
+  final Future<void> Function()? syncCart;
+  const LoginPage({
+    super.key,
+    required this.onSessionChanged,
+    this.login,
+    this.syncCart,
+  });
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -39,13 +50,26 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = true);
     try {
       await SessionHelper.save(
-        await AuthApi.login(
+        await (widget.login ?? AuthApi.login)(
           email: _email.text.trim(),
           password: _password.text,
         ),
       );
-      await CartApi.syncOfflineCart();
-      if (mounted) widget.onSessionChanged();
+      var syncFailed = false;
+      try {
+        await (widget.syncCart ?? CartApi.syncOfflineCart)();
+      } catch (_) {
+        // Keep the local cart for a later retry; authentication succeeded.
+        syncFailed = true;
+      }
+      if (mounted) {
+        widget.onSessionChanged();
+        if (syncFailed) {
+          _message(
+            'Đăng nhập thành công. Chưa đồng bộ được giỏ hàng lưu trên máy.',
+          );
+        }
+      }
     } on ApiException catch (error) {
       _message(error.message);
     } catch (_) {
@@ -199,10 +223,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         if (_step == 2) ...[
           _passwordField(_password, 'Mật khẩu mới'),
           const SizedBox(height: 16),
-          TextFormField(
+          _PasswordField(
             controller: _confirmPassword,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu'),
+            label: 'Nhập lại mật khẩu',
             validator: (value) =>
                 value != _password.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
           ),
@@ -398,13 +421,9 @@ class _RegisterPageState extends State<RegisterPage> {
         if (_step == 2) ...[
           _passwordField(_password, 'Mật khẩu'),
           const SizedBox(height: 16),
-          TextFormField(
+          _PasswordField(
             controller: _confirmPassword,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Nhập lại mật khẩu',
-              prefixIcon: Icon(Icons.lock_outline),
-            ),
+            label: 'Nhập lại mật khẩu',
             validator: (value) =>
                 value != _password.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
           ),
@@ -914,17 +933,48 @@ TextFormField _emailField(TextEditingController controller) => TextFormField(
   validator: (value) =>
       value != null && value.contains('@') ? null : 'Email không hợp lệ.',
 );
-TextFormField _passwordField(TextEditingController controller, String label) =>
-    TextFormField(
-      controller: controller,
-      obscureText: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline),
+Widget _passwordField(TextEditingController controller, String label) =>
+    _PasswordField(controller: controller, label: label);
+
+class _PasswordField extends StatefulWidget {
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    this.validator,
+  });
+  final TextEditingController controller;
+  final String label;
+  final String? Function(String?)? validator;
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _hidden = true;
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+    controller: widget.controller,
+    obscureText: _hidden,
+    decoration: InputDecoration(
+      labelText: widget.label,
+      prefixIcon: const Icon(Icons.lock_outline),
+      suffixIcon: IconButton(
+        tooltip: _hidden ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
+        icon: Icon(
+          _hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+        ),
+        onPressed: () => setState(() => _hidden = !_hidden),
       ),
-      validator: (value) => value != null && value.length >= 8
-          ? null
-          : 'Mật khẩu tối thiểu 8 ký tự.',
-    );
+    ),
+    validator:
+        widget.validator ??
+        (value) => value != null && value.length >= 8
+            ? null
+            : 'Mật khẩu tối thiểu 8 ký tự.',
+  );
+}
+
 String? _required(String? value) =>
     value == null || value.trim().isEmpty ? 'Trường này là bắt buộc.' : null;

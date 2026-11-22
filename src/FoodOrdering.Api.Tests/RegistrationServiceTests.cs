@@ -27,6 +27,9 @@ public sealed class RegistrationServiceTests
         Assert.Empty(db.Users);
         Assert.True((await service.CompleteAsync(new(pending.Email, "012345", "Password123"), CancellationToken.None)).IsSuccess);
         Assert.True((await db.Users.SingleAsync()).IsEmailVerified);
+        var auth = new AuthService(db, new TestTokenService(), new JwtOptions { Issuer = "test", Audience = "test", Key = "a-test-key-that-is-at-least-thirty-two-bytes" });
+        Assert.True((await auth.LoginAsync(new LoginRequest(" TEST@example.com ", "Password123"), CancellationToken.None)).IsSuccess);
+        Assert.False((await auth.LoginAsync(new LoginRequest(pending.Email, "wrong-password"), CancellationToken.None)).IsSuccess);
         Assert.False((await service.CompleteAsync(new(pending.Email, "012345", "Password123"), CancellationToken.None)).IsSuccess);
     }
 
@@ -54,4 +57,9 @@ public sealed class RegistrationServiceTests
         PendingRegistrationId = Guid.NewGuid(), Email = email, FullName = "Test User",
         TokenHash = BCrypt.Net.BCrypt.HashPassword("012345"), CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(10)
     };
+
+    private sealed class TestTokenService : ITokenService
+    {
+        public string CreateAccessToken(User user) => "test-token";
+    }
 }

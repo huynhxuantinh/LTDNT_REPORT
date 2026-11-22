@@ -30,7 +30,7 @@ class _AuthGateState extends State<AuthGate> {
   late Future<String?> _tokenFuture;
   @override
   void initState() { super.initState(); _reload(); }
-  void _reload() => _tokenFuture = SessionHelper.accessToken;
+  void _reload() { _tokenFuture = SessionHelper.accessToken; }
   void _changed() => setState(_reload);
   @override
   Widget build(BuildContext context) => FutureBuilder<String?>(

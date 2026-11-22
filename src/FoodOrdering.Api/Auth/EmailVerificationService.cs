@@ -18,7 +18,7 @@ public sealed class EmailVerificationService(FoodOrderingDbContext db, IConfigur
         await db.SaveChangesAsync(ct);
         using var client = new SmtpClient(configuration["Smtp:Host"], int.Parse(configuration["Smtp:Port"] ?? "2525")) { EnableSsl = true, Credentials = new NetworkCredential(configuration["Smtp:User"], configuration["Smtp:Password"]) };
         var link = EmailLinks.Create(configuration, "/email/verify", token);
-        using var message = new MailMessage(configuration["Smtp:From"] ?? "noreply@foodordering.local", user.Email) { Subject = "Xác thực tài khoản", IsBodyHtml = true, Body = EmailLinks.Html("Xác thực email", "Bấm nút để xác thực tài khoản. Liên kết hết hạn sau 24 giờ.", link, token) };
+        using var message = new MailMessage(configuration["Smtp:From"] ?? "noreply@foodordering.local", user.Email) { Subject = "Xác thực tài khoản", SubjectEncoding = System.Text.Encoding.UTF8, BodyEncoding = System.Text.Encoding.UTF8, IsBodyHtml = true, Body = EmailLinks.Html("Xác thực email", "Bấm nút để xác thực tài khoản. Liên kết hết hạn sau 24 giờ.", link, token) };
         await client.SendMailAsync(message, ct);
     }
 

@@ -39,12 +39,14 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
     }
   }
 
-  void _reload() => _foods = MemberFoodApi.getPage(
-    page: _page,
-    pageSize: _pageSize,
-    categoryId: widget.categoryId,
-    search: _search.text,
-  );
+  void _reload() {
+    _foods = MemberFoodApi.getPage(
+      page: _page,
+      pageSize: _pageSize,
+      categoryId: widget.categoryId,
+      search: _search.text,
+    );
+  }
   void _applySearch() => setState(() {
     _page = 1;
     _reload();

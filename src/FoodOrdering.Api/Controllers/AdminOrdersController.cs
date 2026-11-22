@@ -47,7 +47,7 @@ public sealed class AdminOrdersController(FoodOrderingDbContext db) : Controller
         if (!string.IsNullOrWhiteSpace(orderType)) query=query.Where(x=>x.OrderType==orderType);
         if (!string.IsNullOrWhiteSpace(paymentStatus)) query=query.Where(x=>x.PaymentStatus==paymentStatus);
         var total=await query.CountAsync(ct);
-        var data=await query.OrderByDescending(x=>x.CreatedAt).Skip((page-1)*size).Take(size).Select(x=>(object)new {x.OrderId,x.OrderCode,x.ReceiverName,x.ReceiverPhone,x.TotalAmount,x.PaymentStatus,x.CreatedAt,Status=x.OrderStatus!.Name}).ToListAsync(ct);
+        var data=await query.OrderByDescending(x=>x.CreatedAt).Skip((page-1)*size).Take(size).Select(x=>(object)new {x.OrderId,x.OrderCode,x.OrderType,x.ReceiverName,x.ReceiverPhone,x.TotalAmount,x.PaymentStatus,x.CreatedAt,Status=x.OrderStatus!.Name}).ToListAsync(ct);
         return Ok(PagedResponse<object>.Create(data,page,size,total));
     }
 }

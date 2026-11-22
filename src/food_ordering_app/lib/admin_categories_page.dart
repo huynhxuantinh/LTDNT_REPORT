@@ -19,7 +19,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     _reload();
   }
 
-  void _reload() => _categories = CategoryApi.getAll();
+  void _reload() { _categories = CategoryApi.getAll(); }
 
   Future<void> _edit([AdminCategory? category]) async {
     final nameController = TextEditingController(text: category?.name);

@@ -20,7 +20,7 @@ class _HomeCategoriesState extends State<HomeCategories> {
     _reload();
   }
 
-  void _reload() => _categories = MemberCategoryApi.getAll();
+  void _reload() { _categories = MemberCategoryApi.getAll(); }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<List<MemberCategory>>(
