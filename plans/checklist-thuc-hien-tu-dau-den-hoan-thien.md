@@ -121,9 +121,9 @@
 
 - [x] Thêm `sqflite` và `path`.
 - [x] Tạo database SQLite, version và migration cục bộ.
-- [x] Cache category và món ăn có thời điểm cập nhật.
+- [ ] Cache category và món ăn có thời điểm cập nhật.
 - [x] Tạo bảng giỏ hàng local cho offline.
-- [x] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng.
+- [ ] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng.
 - [x] Không lưu mật khẩu hoặc token JWT trong SQLite.
 
 ## Giai đoạn 6 — Quản lý đơn hàng (Admin)
@@ -140,7 +140,7 @@
 - [x] Upload ảnh category đủ thêm/sửa/xóa.
 - [x] Món liên quan cùng category, có phân trang.
 - [x] Member tìm kiếm đơn hàng.
-- [ ] Admin tìm kiếm và lọc đơn theo ngày.
+- [x] Admin tìm kiếm và lọc đơn theo ngày.
 
 ## Giai đoạn 8 — Bán offline và bàn ăn
 
@@ -171,7 +171,7 @@
 - [ ] Kiểm tra SQLite offline → online sync.
 - [ ] Kiểm tra không có secret/connection string/key thanh toán trong GitHub.
 - [ ] Chạy build API và `flutter test` trước mỗi commit lớn.
-- [ ] Hoàn thiện README: cài SQL, cấu hình API, chạy Flutter, account demo.
+- [x] Hoàn thiện README: cài SQL, cấu hình API, chạy Flutter, account demo.
 - [ ] Viết tài liệu API, ERD, use case, sơ đồ kiến trúc.
 - [ ] Tạo APK release.
 - [ ] Chuẩn bị data demo, video demo và slide bảo vệ.

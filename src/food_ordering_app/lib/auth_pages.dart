@@ -8,6 +8,7 @@ import 'package:trek_bikes_app/member_category_api.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/cart_page.dart';
 import 'package:trek_bikes_app/orders_page.dart';
+import 'package:trek_bikes_app/admin_orders_page.dart';
 import 'package:trek_bikes_app/staff_order_page.dart';
 import 'package:trek_bikes_app/staff_orders_page.dart';
 import 'package:trek_bikes_app/role_guard.dart';
@@ -61,6 +62,13 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         _emailField(_email),
         _passwordField(_password, 'Mật khẩu'),
+        TextButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+          ),
+          child: const Text('Quên mật khẩu?'),
+        ),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _loading ? null : _submit,
@@ -73,6 +81,13 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: const Text('Chưa có tài khoản? Đăng ký'),
         ),
+        TextButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const VerifyEmailPage()),
+          ),
+          child: const Text('Xác thực email'),
+        ),
       ],
     ),
   );
@@ -82,10 +97,162 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
+  @override
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
+}
+
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final email = TextEditingController();
+  final token = TextEditingController();
+  final password = TextEditingController();
+  bool loading = false;
+  @override
+  void dispose() {
+    email.dispose();
+    token.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  Future<void> run(Future<void> Function() operation, String message) async {
+    setState(() => loading = true);
+    try {
+      await operation();
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+    } on ApiException catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể kết nối máy chủ.')),
+        );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Quên mật khẩu')),
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email'),
+          ),
+          FilledButton(
+            onPressed: loading
+                ? null
+                : () => run(
+                    () => AuthApi.forgotPassword(email.text),
+                    'Nếu tài khoản tồn tại, mã đã được gửi qua email.',
+                  ),
+            child: const Text('Gửi mã'),
+          ),
+          TextField(
+            controller: token,
+            decoration: const InputDecoration(labelText: 'Mã từ email'),
+          ),
+          TextField(
+            controller: password,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText:
+                  'Mật khẩu mới (ít nhất 8 ký tự, chữ hoa, chữ thường và số)',
+            ),
+          ),
+          FilledButton(
+            onPressed: loading
+                ? null
+                : () => run(
+                    () => AuthApi.resetPassword(token.text, password.text),
+                    'Đổi mật khẩu thành công. Hãy đăng nhập.',
+                  ),
+            child: const Text('Đặt lại mật khẩu'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
   @override
   State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class VerifyEmailPage extends StatefulWidget {
+  const VerifyEmailPage({super.key});
+  @override
+  State<VerifyEmailPage> createState() => _VerifyEmailPageState();
+}
+
+class _VerifyEmailPageState extends State<VerifyEmailPage> {
+  final token = TextEditingController();
+  bool loading = false;
+  @override
+  void dispose() {
+    token.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    if (token.text.trim().isEmpty) return;
+    setState(() => loading = true);
+    try {
+      await AuthApi.verifyEmail(token.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Xác thực email thành công.')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Mã không hợp lệ, hết hạn hoặc không kết nối được máy chủ.',
+            ),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Xác thực email')),
+    body: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          TextField(
+            controller: token,
+            decoration: const InputDecoration(
+              labelText: 'Mã xác thực trong email',
+            ),
+          ),
+          FilledButton(
+            onPressed: loading ? null : submit,
+            child: const Text('Xác thực'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -310,11 +477,22 @@ class _AccountHomeState extends State<AccountHome> {
                   ),
                 if (_role == 'Staff' || _role == 'Admin')
                   OutlinedButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffOrderPage())),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StaffOrderPage()),
+                    ),
                     child: const Text('Tạo đơn tại quán'),
                   ),
                 if (_role == 'Staff' || _role == 'Admin')
-                  OutlinedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffOrdersPage())), child: const Text('Xử lý đơn tại quán')),
+                  OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const StaffOrdersPage(),
+                      ),
+                    ),
+                    child: const Text('Xử lý đơn tại quán'),
+                  ),
                 if (_role == 'Admin')
                   OutlinedButton(
                     onPressed: _openAdminCategories,
@@ -326,7 +504,27 @@ class _AccountHomeState extends State<AccountHome> {
                     child: const Text('Quản lý người dùng'),
                   ),
                 const Text('Bạn đã đăng nhập.'),
-                OutlinedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersPage())), child: const Text('Đơn hàng của tôi')),
+                if (_role == 'Admin')
+                  OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RoleGuard(
+                          role: _role,
+                          allowedRoles: const {'Admin'},
+                          child: const AdminOrdersPage(),
+                        ),
+                      ),
+                    ),
+                    child: const Text('Quản lý đơn hàng'),
+                  ),
+                OutlinedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OrdersPage()),
+                  ),
+                  child: const Text('Đơn hàng của tôi'),
+                ),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _changePassword,

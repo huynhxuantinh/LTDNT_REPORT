@@ -10,16 +10,31 @@ namespace FoodOrdering.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 [EnableRateLimiting("auth")]
-public sealed class AuthController(AuthService authService) : ControllerBase
+public sealed class AuthController(AuthService authService, EmailVerificationService verificationService, PasswordResetService resetService) : ControllerBase
 {
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await resetService.RequestAsync(request.Email, ct);
+        return Ok(new { message = "Nếu tài khoản tồn tại, email hướng dẫn đã được gửi." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct) =>
+        await resetService.ResetAsync(request.Token, request.NewPassword, ct) ? NoContent() : BadRequest(ApiErrorResponse.Create("reset_failed", "Mã không hợp lệ, đã hết hạn hoặc mật khẩu không đúng quy định."));
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.RegisterAsync(request, cancellationToken);
-        return result.IsSuccess
-            ? StatusCode(StatusCodes.Status201Created, new { userId = result.Value, message = "Đăng ký thành công." })
-            : BadRequest(ApiErrorResponse.Create("registration_failed", result.Error!));
+        if (!result.IsSuccess) return BadRequest(ApiErrorResponse.Create("registration_failed", result.Error!));
+        try { await verificationService.SendAsync(result.Value, cancellationToken); }
+        catch (Exception) { return StatusCode(201, new { userId = result.Value, emailSent = false, message = "Đăng ký thành công nhưng chưa gửi được email." }); }
+        return StatusCode(201, new { userId = result.Value, emailSent = true, message = "Đăng ký thành công, hãy kiểm tra email." });
     }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailRequest request, CancellationToken cancellationToken) =>
+        await verificationService.VerifyAsync(request.Token, cancellationToken) ? Ok(new { message = "Xác thực email thành công." }) : BadRequest(ApiErrorResponse.Create("invalid_token", "Mã xác thực không hợp lệ hoặc đã hết hạn."));
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)

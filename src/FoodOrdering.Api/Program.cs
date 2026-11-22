@@ -27,6 +27,8 @@ if (Encoding.UTF8.GetByteCount(jwtOptions.Key) < 32)
 
 builder.Services.AddDbContext<FoodOrderingDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailVerificationService>();
+builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<AdminUserService>();
 builder.Services.AddScoped<AdminCategoryService>();
 builder.Services.AddScoped<MemberCategoryService>();

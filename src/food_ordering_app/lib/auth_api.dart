@@ -36,6 +36,33 @@ class ApiException implements Exception {
 }
 
 class AuthApi {
+  static Future<void> forgotPassword(String email) async {
+    final response = await http.post(
+      _uri('forgot-password'),
+      headers: _headers(),
+      body: jsonEncode({'email': email.trim()}),
+    );
+    _ensure(response, 200);
+  }
+
+  static Future<void> resetPassword(String token, String password) async {
+    final response = await http.post(
+      _uri('reset-password'),
+      headers: _headers(),
+      body: jsonEncode({'token': token.trim(), 'newPassword': password}),
+    );
+    _ensure(response, 204);
+  }
+
+  static Future<void> verifyEmail(String token) async {
+    final response = await http.post(
+      _uri('verify-email'),
+      headers: _headers(),
+      body: jsonEncode({'token': token.trim()}),
+    );
+    _ensure(response, 200);
+  }
+
   static String get _baseUrl => ApiConfig.baseUrl;
   static Uri _uri(String path) => Uri.parse('$_baseUrl/api/auth/$path');
 
