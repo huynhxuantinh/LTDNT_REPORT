@@ -93,8 +93,9 @@ class _OrdersPageState extends State<OrdersPage> {
 }
 
 class OrderDetailPage extends StatefulWidget {
-  const OrderDetailPage({super.key, required this.id});
+  const OrderDetailPage({super.key, required this.id, this.loadOrder});
   final int id;
+  final Future<dynamic> Function(int id)? loadOrder;
 
   @override
   State<OrderDetailPage> createState() => _OrderDetailPageState();
@@ -105,8 +106,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   @override
   void initState() {
     super.initState();
-    order = _load('/${widget.id}');
+    order = _fetchOrder();
   }
+
+  Future<dynamic> _fetchOrder() => widget.loadOrder?.call(widget.id) ?? _load('/${widget.id}');
+
+  String _date(dynamic raw) {
+    if (raw is! String) return 'Không có thông tin';
+    final value = DateTime.tryParse(raw.endsWith('Z') || RegExp(r'[+-]\d\d:\d\d$').hasMatch(raw) ? raw : '${raw}Z')?.toLocal();
+    if (value == null) return 'Không có thông tin';
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(value.day)}/${two(value.month)}/${value.year} ${two(value.hour)}:${two(value.minute)}';
+  }
+
+  String _value(dynamic value) => value is String && value.trim().isNotEmpty ? value : 'Không có thông tin';
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -119,7 +132,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             }
             if (snapshot.hasError) {
               return AppErrorState(
-                onRetry: () => setState(() => order = _load('/${widget.id}')),
+                onRetry: () => setState(() => order = _fetchOrder()),
               );
             }
             final data = snapshot.data as Map<String, dynamic>;
@@ -149,6 +162,21 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      Text('Thông tin đơn hàng', style: Theme.of(context).textTheme.titleMedium),
+                      Card(child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          _detailRow('Ngày đặt', _date(data['createdAt'])),
+                          _detailRow('Loại đơn', switch (data['orderType']) { 'Delivery' => 'Giao hàng', 'DineIn' => 'Ăn tại quán', 'TakeAway' => 'Mang đi', _ => _value(data['orderType']) }),
+                          if (data['orderType'] == 'Delivery' || data['deliveryAddress'] != null) ...[
+                            _detailRow('Người nhận', _value(data['receiverName'])),
+                            _detailRow('Số điện thoại', _value(data['receiverPhone'])),
+                            _detailRow('Địa chỉ giao hàng', _value(data['deliveryAddress'])),
+                          ],
+                          _detailRow('Ghi chú', _value(data['note'])),
+                        ]),
+                      )),
+                      const SizedBox(height: 16),
                       Text('Món đã đặt', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 8),
                       if (items.isEmpty) const Text('Không có chi tiết món.'),
@@ -156,8 +184,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         (item) => Card(
                           child: ListTile(
                             title: Text(item['foodNameSnapshot'] as String),
-                            subtitle: Text('Số lượng: ${item['quantity']}'),
-                            trailing: Text('${item['unitPrice']} đ'),
+                            subtitle: Text('Số lượng: ${item['quantity']} · Đơn giá: ${item['unitPrice']} đ'),
+                            trailing: Text('${(item['unitPrice'] as num) * (item['quantity'] as num)} đ'),
                           ),
                         ),
                       ),
@@ -192,7 +220,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                                   builder: (_) => VietQrPaymentPage(orderId: widget.id),
                                 ),
                               );
-                              if (mounted) setState(() => order = _load('/${widget.id}'));
+                              if (mounted) setState(() => order = _fetchOrder());
                             },
                           ),
                         ),
@@ -208,7 +236,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                                   builder: (_) => VnPayPaymentPage(orderId: widget.id),
                                 ),
                               );
-                              if (mounted) setState(() => order = _load('/${widget.id}'));
+                              if (mounted) setState(() => order = _fetchOrder());
                             },
                           ),
                         ),
@@ -221,3 +249,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
       );
 }
+
+Widget _detailRow(String label, String value) => Padding(
+  padding: const EdgeInsets.symmetric(vertical: 4),
+  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    SizedBox(width: 130, child: Text(label)),
+    Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
+  ]),
+);

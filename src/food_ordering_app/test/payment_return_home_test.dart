@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trek_bikes_app/checkout_page.dart';
+import 'package:trek_bikes_app/payment_navigation.dart';
 import 'package:trek_bikes_app/vietqr_api.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
 import 'package:trek_bikes_app/vnpay_api.dart';
@@ -39,6 +40,25 @@ Future<void> openPayment(WidgetTester tester, Widget payment) async {
 }
 
 void main() {
+  testWidgets('successful payment does not pop home through checkout', (tester) async {
+    await openPayment(tester, CheckoutPage(
+      checkout: ({required name, required phone, required address, note}) async => 3,
+      vietQrBuilder: (_) => Builder(builder: (context) => Scaffold(body: TextButton(
+        onPressed: () => returnHomeAfterPayment(context),
+        child: const Text('Thanh toán thành công'),
+      ))),
+    ));
+    await tester.enterText(find.widgetWithText(TextFormField, 'Tên người nhận'), 'An');
+    await tester.enterText(find.widgetWithText(TextFormField, 'SĐT'), '0912345678');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Địa chỉ'), 'Hà Nội');
+    await tester.tap(find.text('Đặt hàng'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Thanh toán thành công'));
+    await tester.pumpAndSettle();
+    expect(find.text('Trang chủ'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('COD returns home with order placed message', (tester) async {
     await openPayment(tester, CheckoutPage(checkout: ({required name, required phone, required address, note}) async => 3));
     await tester.enterText(find.widgetWithText(TextFormField, 'Tên người nhận'), 'An');

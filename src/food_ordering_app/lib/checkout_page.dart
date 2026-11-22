@@ -4,8 +4,9 @@ import 'package:trek_bikes_app/vietqr_payment_page.dart';
 import 'package:trek_bikes_app/vnpay_payment_page.dart';
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, this.checkout});
+  const CheckoutPage({super.key, this.checkout, this.vietQrBuilder});
   final Future<int> Function({required String name, required String phone, required String address, String? note})? checkout;
+  final Widget Function(int orderId)? vietQrBuilder;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -45,7 +46,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => VietQrPaymentPage(orderId: orderId),
+            builder: (_) => widget.vietQrBuilder?.call(orderId) ?? VietQrPaymentPage(orderId: orderId),
           ),
         );
       } else if (paymentMethod == 'VNPay') {
@@ -63,7 +64,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      if (mounted) Navigator.pop(context, true);
+      // Payment can remove this route before its transition has disposed it.
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        Navigator.pop(context, true);
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
