@@ -161,7 +161,7 @@
 - [ ] Xác thực email.
 - [ ] Quên mật khẩu qua email.
 - [x] VietQR: tạo QR, lưu mã giao dịch, đối soát trạng thái thanh toán.
-- [ ] VNPay sandbox: tạo URL thanh toán, xác thực chữ ký callback, xử lý callback idempotent.
+- [x] VNPay sandbox: tạo URL thanh toán, xác thực chữ ký callback, xử lý callback idempotent.
 
 ## Giai đoạn 10 — Kiểm thử, hoàn thiện và bảo vệ
 

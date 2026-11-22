@@ -6,6 +6,7 @@ import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
+import 'package:trek_bikes_app/vnpay_payment_page.dart';
 
 Future<dynamic> _load(String path) async {
   final token = await SessionHelper.accessToken;
@@ -178,18 +179,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.qr_code_2),
-                      label: const Text('Thanh toán VietQR'),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => VietQrPaymentPage(orderId: widget.id),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.qr_code_2),
+                            label: const Text('VietQR'),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => VietQrPaymentPage(orderId: widget.id),
+                                ),
+                              );
+                              if (mounted) setState(() => order = _load('/${widget.id}'));
+                            },
                           ),
-                        );
-                        if (mounted) setState(() => order = _load('/${widget.id}'));
-                      },
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.payment),
+                            label: const Text('VNPay'),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => VnPayPaymentPage(orderId: widget.id),
+                                ),
+                              );
+                              if (mounted) setState(() => order = _load('/${widget.id}'));
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],

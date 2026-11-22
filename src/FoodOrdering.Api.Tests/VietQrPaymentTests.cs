@@ -28,7 +28,7 @@ public sealed class VietQrPaymentTests
                 .Options);
 
         var userId = Guid.NewGuid();
-        var controller = new PaymentsController(db, options);
+        var controller = new PaymentsController(db, options, new VnPayOptions());
 
         var claims = new List<Claim>
         {

@@ -40,6 +40,8 @@ builder.Services.AddSingleton<IFoodImageStorage, FoodImageStorage>();
 builder.Services.AddScoped<UserProfileService>();
 var vietQrOptions = builder.Configuration.GetSection("VietQR").Get<VietQrOptions>() ?? new VietQrOptions();
 builder.Services.AddSingleton(vietQrOptions);
+var vnPayOptions = builder.Configuration.GetSection("VNPay").Get<VnPayOptions>() ?? new VnPayOptions();
+builder.Services.AddSingleton(vnPayOptions);
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 builder.Services.AddControllers();

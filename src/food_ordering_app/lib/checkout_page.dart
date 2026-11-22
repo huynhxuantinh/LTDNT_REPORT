@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
+import 'package:trek_bikes_app/vnpay_payment_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -44,6 +45,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
           context,
           MaterialPageRoute(
             builder: (_) => VietQrPaymentPage(orderId: orderId),
+          ),
+        );
+      } else if (paymentMethod == 'VNPay') {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VnPayPaymentPage(orderId: orderId),
           ),
         );
       } else {
@@ -111,6 +119,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       DropdownMenuItem(
                         value: 'VietQR',
                         child: Text('Chuyển khoản VietQR'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'VNPay',
+                        child: Text('Cổng thanh toán VNPay Sandbox'),
                       ),
                       DropdownMenuItem(
                         value: 'COD',
