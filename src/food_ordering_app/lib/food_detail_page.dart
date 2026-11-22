@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:trek_bikes_app/food_image.dart';
 
 class FoodDetailPage extends StatefulWidget {
   const FoodDetailPage({super.key, required this.foodId});
@@ -56,19 +57,7 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Theme.of(c).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  Icons.restaurant,
-                  size: 72,
-                  color: Theme.of(c).colorScheme.primary,
-                ),
-              ),
+              Center(child: FoodImage(imageUrl: x.imageUrl, size: 220)),
               const SizedBox(height: 20),
               Text(
                 x.name,

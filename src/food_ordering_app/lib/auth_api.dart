@@ -71,19 +71,35 @@ class AuthApi {
     if (token != null) 'Authorization': 'Bearer $token',
   };
 
-  static Future<void> register({
+  static Future<void> startRegistration({
     required String fullName,
     required String email,
-    required String password,
   }) async {
     final response = await http.post(
-      _uri('register'),
+      _uri('register/start'),
       headers: _headers(),
-      body: jsonEncode({
-        'fullName': fullName,
-        'email': email,
-        'password': password,
-      }),
+      body: jsonEncode({'fullName': fullName, 'email': email}),
+    );
+    _ensure(response, 200);
+  }
+
+  static Future<void> checkRegistrationCode(String token) async {
+    final response = await http.post(
+      _uri('register/check-code'),
+      headers: _headers(),
+      body: jsonEncode({'token': token.trim()}),
+    );
+    _ensure(response, 200);
+  }
+
+  static Future<void> completeRegistration(
+    String token,
+    String password,
+  ) async {
+    final response = await http.post(
+      _uri('register/complete'),
+      headers: _headers(),
+      body: jsonEncode({'token': token.trim(), 'password': password}),
     );
     _ensure(response, 201);
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/food_detail_page.dart';
+import 'package:trek_bikes_app/food_image.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 
 class HomeLatestFoods extends StatefulWidget {
@@ -134,12 +135,7 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
                                   FoodDetailPage(foodId: food.foodItemId),
                             ),
                           ),
-                          leading: CircleAvatar(
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer,
-                            child: const Icon(Icons.restaurant),
-                          ),
+                          leading: FoodImage(imageUrl: food.imageUrl),
                           title: Text(
                             food.name,
                             maxLines: 2,

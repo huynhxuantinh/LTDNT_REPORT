@@ -7,7 +7,7 @@ namespace FoodOrdering.Api.Controllers;
 
 [Route("email")]
 [EnableRateLimiting("auth")]
-public sealed class EmailPagesController(EmailVerificationService verification, PasswordResetService reset) : Controller
+public sealed class EmailPagesController(EmailVerificationService verification, PasswordResetService reset, RegistrationService registration) : Controller
 {
     private IActionResult Page(string title, string content)
     {
@@ -26,6 +26,21 @@ public sealed class EmailPagesController(EmailVerificationService verification, 
         ValidToken(token) && await verification.VerifyAsync(token!, ct)
             ? Page("Xác thực thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>")
             : Page("Không thể xác thực", "<p>Liên kết không hợp lệ, đã dùng hoặc hết hạn.</p>");
+
+    [HttpGet("register")]
+    public async Task<IActionResult> RegisterForm([FromQuery] string? token, CancellationToken ct)
+    {
+        if (!ValidToken(token) || !await registration.CheckAsync(token!, ct)) return Page("Liên kết không hợp lệ", "<p>Mã đã hết hạn hoặc không hợp lệ.</p>");
+        return Page("Email đã được xác nhận", $"<p>Đặt mật khẩu để hoàn tất đăng ký.</p><form method=\"post\" action=\"/email/register\"><input type=\"hidden\" name=\"token\" value=\"{WebUtility.HtmlEncode(token)}\"><label>Mật khẩu mới<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p>Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.</p><button type=\"submit\">Hoàn tất đăng ký</button></form>");
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromForm] string? token, [FromForm] string? password, CancellationToken ct)
+    {
+        if (!ValidToken(token) || password is not { Length: >= 8 and <= 128 }) return Page("Không thể đăng ký", "<p>Mã hoặc mật khẩu không hợp lệ.</p>");
+        var result = await registration.CompleteAsync(new CompleteRegistrationRequest(token!, password), ct);
+        return result.IsSuccess ? Page("Đăng ký thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>") : Page("Không thể đăng ký", $"<p>{WebUtility.HtmlEncode(result.Error)}</p>");
+    }
 
     [HttpGet("reset-password")]
     public IActionResult ResetForm([FromQuery] string? token) => ValidToken(token)

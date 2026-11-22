@@ -279,13 +279,18 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
+  final _code = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  int _step = 0;
   bool _loading = false;
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _code.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -293,16 +298,23 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await AuthApi.register(
-        fullName: _name.text.trim(),
-        email: _email.text.trim(),
-        password: _password.text,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng ký thành công. Hãy đăng nhập.')),
-      );
-      Navigator.pop(context);
+      if (_step == 0) {
+        await AuthApi.startRegistration(
+          fullName: _name.text.trim(),
+          email: _email.text.trim(),
+        );
+        if (mounted) setState(() => _step = 1);
+      } else if (_step == 1) {
+        await AuthApi.checkRegistrationCode(_code.text);
+        if (mounted) setState(() => _step = 2);
+      } else {
+        await AuthApi.completeRegistration(_code.text, _password.text);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng ký thành công. Hãy đăng nhập.')),
+        );
+        Navigator.pop(context);
+      }
     } on ApiException catch (error) {
       _message(error.message);
     } catch (_) {
@@ -318,28 +330,74 @@ class _RegisterPageState extends State<RegisterPage> {
     body: _FormLayout(
       formKey: _formKey,
       title: 'Tạo tài khoản',
-      subtitle: 'Điền thông tin để bắt đầu đặt món.',
+      subtitle: switch (_step) {
+        0 => 'Bước 1/3: Nhập thông tin để nhận mã qua email.',
+        1 => 'Bước 2/3: Nhập mã gửi tới ${_email.text.trim()}.',
+        _ => 'Bước 3/3: Đặt mật khẩu để hoàn tất.',
+      },
       icon: Icons.person_add_alt_1_rounded,
       children: [
-        TextFormField(
-          controller: _name,
-          decoration: const InputDecoration(labelText: 'Họ và tên'),
-          validator: _required,
-        ),
-        const SizedBox(height: 16),
-        _emailField(_email),
-        const SizedBox(height: 16),
-        _passwordField(_password, 'Mật khẩu'),
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(
-            'Mật khẩu có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số.',
+        if (_step == 0) ...[
+          TextFormField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Họ và tên'),
+            validator: _required,
           ),
-        ),
+          const SizedBox(height: 16),
+          _emailField(_email),
+          const SizedBox(height: 16),
+        ],
+        if (_step == 1) ...[
+          TextFormField(
+            controller: _code,
+            decoration: const InputDecoration(
+              labelText: 'Mã xác nhận trong email',
+            ),
+            validator: (value) => value == null || value.trim().length < 32
+                ? 'Nhập mã xác nhận trong email.'
+                : null,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Bạn cũng có thể bấm liên kết trong email để hoàn tất trên trình duyệt.',
+          ),
+          TextButton(
+            onPressed: _loading ? null : () => setState(() => _step = 0),
+            child: const Text('Đổi email hoặc gửi lại mã'),
+          ),
+        ],
+        if (_step == 2) ...[
+          _passwordField(_password, 'Mật khẩu'),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _confirmPassword,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Nhập lại mật khẩu',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+            validator: (value) =>
+                value != _password.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Mật khẩu có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số.',
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _loading ? null : _submit,
-          child: Text(_loading ? 'Đang đăng ký...' : 'Đăng ký'),
+          child: Text(
+            _loading
+                ? 'Đang xử lý...'
+                : switch (_step) {
+                    0 => 'Gửi mã xác nhận',
+                    1 => 'Xác nhận mã',
+                    _ => 'Hoàn tất đăng ký',
+                  },
+          ),
         ),
       ],
     ),

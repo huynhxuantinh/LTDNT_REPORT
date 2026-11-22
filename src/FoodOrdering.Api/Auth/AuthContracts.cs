@@ -19,6 +19,8 @@ public sealed record LogoutRequest([param: Required, StringLength(512, MinimumLe
 
 public sealed record RefreshTokenRequest([param: Required, StringLength(512, MinimumLength = 32)] string RefreshToken);
 public sealed record VerifyEmailRequest([param: Required, StringLength(128, MinimumLength = 32)] string Token);
+public sealed record StartRegistrationRequest([param: Required, StringLength(120, MinimumLength = 2)] string FullName, [param: Required, EmailAddress, StringLength(254)] string Email);
+public sealed record CompleteRegistrationRequest([param: Required, StringLength(128, MinimumLength = 32)] string Token, [param: Required, StringLength(128, MinimumLength = 8)] string Password);
 public sealed record ForgotPasswordRequest([param: Required, EmailAddress, StringLength(254)] string Email);
 public sealed record ResetPasswordRequest([param: Required, StringLength(128, MinimumLength = 32)] string Token, [param: Required, StringLength(128, MinimumLength = 8)] string NewPassword);
 

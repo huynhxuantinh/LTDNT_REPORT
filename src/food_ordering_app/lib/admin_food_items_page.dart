@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/category_api.dart';
 import 'package:trek_bikes_app/food_item_api.dart';
+import 'package:trek_bikes_app/food_image.dart';
 
 class AdminFoodItemsPage extends StatefulWidget {
   const AdminFoodItemsPage({super.key});
@@ -187,9 +188,7 @@ class _FoodItemTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      leading: CircleAvatar(
-        child: Icon(item.isAvailable ? Icons.restaurant : Icons.visibility_off),
-      ),
+      leading: FoodImage(imageUrl: item.imageUrl),
       title: Text(item.name),
       subtitle: Text(
         '${item.categoryName} · ${item.price.toStringAsFixed(0)} đ',

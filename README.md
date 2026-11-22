@@ -23,6 +23,7 @@ sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/002_seed_referenc
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/003_add_dining_tables.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/004_seed_staff_and_dining_tables.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/006_order_status_history.sql
+sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/007_pending_registrations.sql
 ```
 
 Thay tên instance nếu máy bạn khác. Dùng `-f 65001` để đọc dữ liệu tiếng Việt trong script seed bằng UTF-8. Có thể mở từng file trong SSMS và chạy theo thứ tự tương tự; kiểm tra kết quả từng script trước khi chạy tiếp. Script `001` và `006` không chạy lại trên database đã có bảng tương ứng.

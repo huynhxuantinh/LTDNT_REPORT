@@ -1,4 +1,5 @@
 using FoodOrdering.Api.Models;
+using FoodOrdering.Api.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrdering.Api.Data;
@@ -10,6 +11,7 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FoodItem> FoodItems => Set<FoodItem>();
     public DbSet<Cart> Carts => Set<Cart>();
@@ -23,6 +25,16 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PendingRegistration>(entity =>
+        {
+            entity.ToTable("PendingRegistrations");
+            entity.HasKey(x => x.PendingRegistrationId);
+            entity.Property(x => x.Email).HasMaxLength(254).IsRequired();
+            entity.Property(x => x.FullName).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.TokenHash).HasMaxLength(255).IsRequired();
+            entity.HasIndex(x => x.Email).IsUnique();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+        });
         modelBuilder.Entity<Role>(entity =>
         {
             entity.ToTable("Roles");

@@ -29,6 +29,7 @@ builder.Services.AddDbContext<FoodOrderingDbContext>(options => options.UseSqlSe
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailVerificationService>();
 builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<AdminUserService>();
 builder.Services.AddScoped<AdminCategoryService>();
 builder.Services.AddScoped<MemberCategoryService>();
