@@ -91,13 +91,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: const Text('Chưa có tài khoản? Đăng ký'),
         ),
-        TextButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const VerifyEmailPage()),
-          ),
-          child: const Text('Xác thực email'),
-        ),
       ],
     ),
   );
@@ -114,25 +107,42 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final email = TextEditingController();
-  final token = TextEditingController();
-  final password = TextEditingController();
-  bool loading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  final _code = TextEditingController();
+  final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  int _step = 0;
+  bool _loading = false;
   @override
   void dispose() {
-    email.dispose();
-    token.dispose();
-    password.dispose();
+    _email.dispose();
+    _code.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
-  Future<void> run(Future<void> Function() operation, String message) async {
-    setState(() => loading = true);
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
     try {
-      await operation();
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+      if (_step == 0) {
+        await AuthApi.forgotPassword(_email.text);
+        if (mounted) setState(() => _step = 1);
+      } else if (_step == 1) {
+        await AuthApi.checkPasswordResetCode(_email.text, _code.text);
+        if (mounted) setState(() => _step = 2);
+      } else {
+        await AuthApi.resetPassword(_email.text, _code.text, _password.text);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đổi mật khẩu thành công. Hãy đăng nhập.'),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } on ApiException catch (error) {
       if (mounted)
         ScaffoldMessenger.of(context)
@@ -143,62 +153,76 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           const SnackBar(content: Text('Không thể kết nối máy chủ.')),
         );
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Quên mật khẩu')),
-    body: _AuthLayout(
+    body: _FormLayout(
+      formKey: _formKey,
       title: 'Khôi phục mật khẩu',
-      subtitle: 'Nhập email để nhận liên kết hoặc mã đặt lại mật khẩu.',
+      subtitle: switch (_step) {
+        0 => 'Bước 1/3: Nhập email để nhận mã xác nhận.',
+        1 => 'Bước 2/3: Nhập mã 6 số đã gửi đến ${_email.text.trim()}.',
+        _ => 'Bước 3/3: Đặt mật khẩu mới.',
+      },
       icon: Icons.lock_reset_rounded,
       children: [
-        const _SectionLabel(number: '1', label: 'Nhận mã qua email'),
-        const SizedBox(height: 12),
-        TextField(
-          controller: email,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Email'),
-        ),
-        FilledButton(
-          onPressed: loading
-              ? null
-              : () => run(
-                  () => AuthApi.forgotPassword(email.text),
-                  'Nếu tài khoản tồn tại, mã đã được gửi qua email.',
-                ),
-          child: const Text('Gửi mã'),
-        ),
-        const SizedBox(height: 24),
-        const Divider(),
-        const SizedBox(height: 16),
-        const _SectionLabel(number: '2', label: 'Nhập mã và mật khẩu mới'),
-        const SizedBox(height: 12),
-        TextField(
-          controller: token,
-          decoration: const InputDecoration(labelText: 'Mã từ email'),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: password,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Mật khẩu mới',
-            helperText: 'Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
-            helperMaxLines: 2,
+        if (_step == 0) _emailField(_email),
+        if (_step == 1) ...[
+          const Text(
+            'Nếu tài khoản tồn tại, mã đã được gửi qua email và có hiệu lực trong 10 phút.',
           ),
-        ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _code,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            decoration: const InputDecoration(labelText: 'Mã 6 số từ email'),
+            validator: (value) =>
+                RegExp(r'^[0-9]{6}$').hasMatch(value?.trim() ?? '')
+                ? null
+                : 'Nhập đúng 6 chữ số.',
+          ),
+          TextButton(
+            onPressed: _loading
+                ? null
+                : () => setState(() {
+                    _step = 0;
+                    _code.clear();
+                  }),
+            child: const Text('Đổi email hoặc gửi lại mã'),
+          ),
+        ],
+        if (_step == 2) ...[
+          _passwordField(_password, 'Mật khẩu mới'),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _confirmPassword,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu'),
+            validator: (value) =>
+                value != _password.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Mật khẩu có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số.',
+          ),
+        ],
         const SizedBox(height: 16),
         FilledButton(
-          onPressed: loading
-              ? null
-              : () => run(
-                  () => AuthApi.resetPassword(token.text, password.text),
-                  'Đổi mật khẩu thành công. Hãy đăng nhập.',
-                ),
-          child: const Text('Đặt lại mật khẩu'),
+          onPressed: _loading ? null : _submit,
+          child: Text(
+            _loading
+                ? 'Đang xử lý...'
+                : switch (_step) {
+                    0 => 'Gửi mã',
+                    1 => 'Xác nhận mã',
+                    _ => 'Đặt lại mật khẩu',
+                  },
+          ),
         ),
       ],
     ),
@@ -305,10 +329,14 @@ class _RegisterPageState extends State<RegisterPage> {
         );
         if (mounted) setState(() => _step = 1);
       } else if (_step == 1) {
-        await AuthApi.checkRegistrationCode(_code.text);
+        await AuthApi.checkRegistrationCode(_email.text, _code.text);
         if (mounted) setState(() => _step = 2);
       } else {
-        await AuthApi.completeRegistration(_code.text, _password.text);
+        await AuthApi.completeRegistration(
+          _email.text,
+          _code.text,
+          _password.text,
+        );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đăng ký thành công. Hãy đăng nhập.')),
@@ -350,16 +378,17 @@ class _RegisterPageState extends State<RegisterPage> {
         if (_step == 1) ...[
           TextFormField(
             controller: _code,
-            decoration: const InputDecoration(
-              labelText: 'Mã xác nhận trong email',
-            ),
-            validator: (value) => value == null || value.trim().length < 32
-                ? 'Nhập mã xác nhận trong email.'
-                : null,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            decoration: const InputDecoration(labelText: 'Mã 6 số trong email'),
+            validator: (value) =>
+                RegExp(r'^[0-9]{6}$').hasMatch(value?.trim() ?? '')
+                ? null
+                : 'Nhập đúng 6 chữ số.',
           ),
           const SizedBox(height: 8),
           const Text(
-            'Bạn cũng có thể bấm liên kết trong email để hoàn tất trên trình duyệt.',
+            'Mã có hiệu lực trong 10 phút. Bạn cũng có thể xác nhận trên trình duyệt qua liên kết trong email.',
           ),
           TextButton(
             onPressed: _loading ? null : () => setState(() => _step = 0),

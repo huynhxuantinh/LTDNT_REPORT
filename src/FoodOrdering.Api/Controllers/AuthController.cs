@@ -20,8 +20,8 @@ public sealed class AuthController(AuthService authService, EmailVerificationSer
     }
 
     [HttpPost("register/check-code")]
-    public async Task<IActionResult> CheckRegistrationCode(VerifyEmailRequest request, CancellationToken ct) =>
-        await registrationService.CheckAsync(request.Token, ct) ? Ok(new { message = "Mã hợp lệ." }) : BadRequest(ApiErrorResponse.Create("invalid_code", "Mã không hợp lệ hoặc đã hết hạn."));
+    public async Task<IActionResult> CheckRegistrationCode(CheckResetCodeRequest request, CancellationToken ct) =>
+        await registrationService.CheckAsync(request.Email, request.Code, ct) ? Ok(new { message = "Mã hợp lệ." }) : BadRequest(ApiErrorResponse.Create("invalid_code", "Mã không hợp lệ, đã hết hạn hoặc đã vượt số lần thử."));
 
     [HttpPost("register/complete")]
     public async Task<IActionResult> CompleteRegistration(CompleteRegistrationRequest request, CancellationToken ct)
@@ -38,7 +38,11 @@ public sealed class AuthController(AuthService authService, EmailVerificationSer
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct) =>
-        await resetService.ResetAsync(request.Token, request.NewPassword, ct) ? NoContent() : BadRequest(ApiErrorResponse.Create("reset_failed", "Mã không hợp lệ, đã hết hạn hoặc mật khẩu không đúng quy định."));
+        await resetService.ResetAsync(request.Email, request.Code, request.NewPassword, ct) ? NoContent() : BadRequest(ApiErrorResponse.Create("reset_failed", "Mã không hợp lệ, đã hết hạn hoặc mật khẩu không đúng quy định."));
+
+    [HttpPost("forgot-password/check-code")]
+    public async Task<IActionResult> CheckResetCode(CheckResetCodeRequest request, CancellationToken ct) =>
+        await resetService.CheckCodeAsync(request.Email, request.Code, ct) ? Ok(new { message = "Mã hợp lệ." }) : BadRequest(ApiErrorResponse.Create("invalid_code", "Mã không hợp lệ, đã hết hạn hoặc đã vượt số lần thử."));
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
     {

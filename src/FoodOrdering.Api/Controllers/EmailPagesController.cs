@@ -28,28 +28,37 @@ public sealed class EmailPagesController(EmailVerificationService verification, 
             : Page("Không thể xác thực", "<p>Liên kết không hợp lệ, đã dùng hoặc hết hạn.</p>");
 
     [HttpGet("register")]
-    public async Task<IActionResult> RegisterForm([FromQuery] string? token, CancellationToken ct)
+    public IActionResult RegisterForm() => Page("Xác nhận email", "<form method=\"post\" action=\"/email/register/check-code\"><label>Email<br><input type=\"email\" name=\"email\" maxlength=\"254\" required></label><p><label>Mã 6 số<br><input name=\"code\" pattern=\"[0-9]{6}\" required></label></p><button type=\"submit\">Xác nhận mã</button></form>");
+
+    [HttpPost("register/check-code")]
+    public async Task<IActionResult> RegisterCheckCode([FromForm] string? email, [FromForm] string? code, CancellationToken ct)
     {
-        if (!ValidToken(token) || !await registration.CheckAsync(token!, ct)) return Page("Liên kết không hợp lệ", "<p>Mã đã hết hạn hoặc không hợp lệ.</p>");
-        return Page("Email đã được xác nhận", $"<p>Đặt mật khẩu để hoàn tất đăng ký.</p><form method=\"post\" action=\"/email/register\"><input type=\"hidden\" name=\"token\" value=\"{WebUtility.HtmlEncode(token)}\"><label>Mật khẩu mới<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p>Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.</p><button type=\"submit\">Hoàn tất đăng ký</button></form>");
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254 || code is not { Length: 6 } || !await registration.CheckAsync(email, code, ct)) return Page("Không thể xác nhận", "<p>Mã không hợp lệ, đã hết hạn hoặc đã vượt số lần thử.</p>");
+        return Page("Email đã được xác nhận", $"<p>Đặt mật khẩu để hoàn tất đăng ký.</p><form method=\"post\" action=\"/email/register\"><input type=\"hidden\" name=\"email\" value=\"{WebUtility.HtmlEncode(email)}\"><input type=\"hidden\" name=\"code\" value=\"{WebUtility.HtmlEncode(code)}\"><label>Mật khẩu mới<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p>Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.</p><button type=\"submit\">Hoàn tất đăng ký</button></form>");
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromForm] string? token, [FromForm] string? password, CancellationToken ct)
+    public async Task<IActionResult> Register([FromForm] string? email, [FromForm] string? code, [FromForm] string? password, CancellationToken ct)
     {
-        if (!ValidToken(token) || password is not { Length: >= 8 and <= 128 }) return Page("Không thể đăng ký", "<p>Mã hoặc mật khẩu không hợp lệ.</p>");
-        var result = await registration.CompleteAsync(new CompleteRegistrationRequest(token!, password), ct);
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254 || code is not { Length: 6 } || password is not { Length: >= 8 and <= 128 }) return Page("Không thể đăng ký", "<p>Mã hoặc mật khẩu không hợp lệ.</p>");
+        var result = await registration.CompleteAsync(new CompleteRegistrationRequest(email, code, password), ct);
         return result.IsSuccess ? Page("Đăng ký thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>") : Page("Không thể đăng ký", $"<p>{WebUtility.HtmlEncode(result.Error)}</p>");
     }
 
     [HttpGet("reset-password")]
-    public IActionResult ResetForm([FromQuery] string? token) => ValidToken(token)
-        ? Page("Đặt lại mật khẩu", $"<form method=\"post\" action=\"/email/reset-password\"><input type=\"hidden\" name=\"token\" value=\"{WebUtility.HtmlEncode(token)}\"><label>Mật khẩu mới (ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số)<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p><button type=\"submit\">Đặt lại mật khẩu</button></p></form>")
-        : Page("Liên kết không hợp lệ", "<p>Vui lòng kiểm tra lại liên kết.</p>");
+    public IActionResult ResetForm() => Page("Xác nhận mã", "<form method=\"post\" action=\"/email/reset-password/check-code\"><label>Email<br><input type=\"email\" name=\"email\" maxlength=\"254\" required></label><p><label>Mã 6 số<br><input name=\"code\" pattern=\"[0-9]{6}\" required></label></p><button type=\"submit\">Xác nhận mã</button></form>");
+
+    [HttpPost("reset-password/check-code")]
+    public async Task<IActionResult> ResetCheckCode([FromForm] string? email, [FromForm] string? code, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254 || code is not { Length: 6 } || !await reset.CheckCodeAsync(email, code, ct))
+            return Page("Không thể xác nhận", "<p>Mã không hợp lệ, đã hết hạn hoặc đã vượt số lần thử.</p>");
+        return Page("Đặt lại mật khẩu", $"<form method=\"post\" action=\"/email/reset-password\"><input type=\"hidden\" name=\"email\" value=\"{WebUtility.HtmlEncode(email)}\"><input type=\"hidden\" name=\"code\" value=\"{WebUtility.HtmlEncode(code)}\"><label>Mật khẩu mới<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p>Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.</p><button type=\"submit\">Đặt lại mật khẩu</button></form>");
+    }
 
     [HttpPost("reset-password")]
-    public async Task<IActionResult> Reset([FromForm] string? token, [FromForm] string? password, CancellationToken ct) =>
-        ValidToken(token) && password is { Length: >= 8 and <= 128 } && await reset.ResetAsync(token!, password, ct)
+    public async Task<IActionResult> Reset([FromForm] string? email, [FromForm] string? code, [FromForm] string? password, CancellationToken ct) =>
+        !string.IsNullOrWhiteSpace(email) && email.Length <= 254 && code is { Length: 6 } && password is { Length: >= 8 and <= 128 } && await reset.ResetAsync(email, code, password, ct)
             ? Page("Đặt lại mật khẩu thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>")
             : Page("Không thể đặt lại mật khẩu", "<p>Liên kết không hợp lệ, đã dùng hoặc hết hạn, hoặc mật khẩu chưa đúng yêu cầu.</p>");
 

@@ -45,11 +45,28 @@ class AuthApi {
     _ensure(response, 200);
   }
 
-  static Future<void> resetPassword(String token, String password) async {
+  static Future<void> checkPasswordResetCode(String email, String code) async {
+    final response = await http.post(
+      _uri('forgot-password/check-code'),
+      headers: _headers(),
+      body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
+    );
+    _ensure(response, 200);
+  }
+
+  static Future<void> resetPassword(
+    String email,
+    String code,
+    String password,
+  ) async {
     final response = await http.post(
       _uri('reset-password'),
       headers: _headers(),
-      body: jsonEncode({'token': token.trim(), 'newPassword': password}),
+      body: jsonEncode({
+        'email': email.trim(),
+        'code': code.trim(),
+        'newPassword': password,
+      }),
     );
     _ensure(response, 204);
   }
@@ -83,23 +100,28 @@ class AuthApi {
     _ensure(response, 200);
   }
 
-  static Future<void> checkRegistrationCode(String token) async {
+  static Future<void> checkRegistrationCode(String email, String code) async {
     final response = await http.post(
       _uri('register/check-code'),
       headers: _headers(),
-      body: jsonEncode({'token': token.trim()}),
+      body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
     );
     _ensure(response, 200);
   }
 
   static Future<void> completeRegistration(
-    String token,
+    String email,
+    String code,
     String password,
   ) async {
     final response = await http.post(
       _uri('register/complete'),
       headers: _headers(),
-      body: jsonEncode({'token': token.trim(), 'password': password}),
+      body: jsonEncode({
+        'email': email.trim(),
+        'code': code.trim(),
+        'password': password,
+      }),
     );
     _ensure(response, 201);
   }

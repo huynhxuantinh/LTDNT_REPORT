@@ -3,14 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/auth_pages.dart';
 
 void main() {
+  testWidgets('registration begins with email and no password field', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: RegisterPage()));
+    expect(find.text('Họ và tên'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Gửi mã xác nhận'), findsOneWidget);
+    expect(find.text('Mật khẩu'), findsNothing);
+  });
   testWidgets('displays login form', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: LoginPage(onSessionChanged: () {})));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginPage(onSessionChanged: () {})),
+    );
     expect(find.text('Đăng nhập'), findsWidgets);
     expect(find.text('Chưa có tài khoản? Đăng ký'), findsOneWidget);
   });
 
   testWidgets('login rejects invalid email and short password', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: LoginPage(onSessionChanged: () {})));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginPage(onSessionChanged: () {})),
+    );
     await tester.enterText(find.byType(TextFormField).first, 'invalid');
     await tester.enterText(find.byType(TextFormField).last, 'short');
     await tester.tap(find.widgetWithText(FilledButton, 'Đăng nhập'));
