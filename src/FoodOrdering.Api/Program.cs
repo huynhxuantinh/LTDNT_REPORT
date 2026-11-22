@@ -38,6 +38,8 @@ builder.Services.AddScoped<MemberFoodService>();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddSingleton<IFoodImageStorage, FoodImageStorage>();
 builder.Services.AddScoped<UserProfileService>();
+var vietQrOptions = builder.Configuration.GetSection("VietQR").Get<VietQrOptions>() ?? new VietQrOptions();
+builder.Services.AddSingleton(vietQrOptions);
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 builder.Services.AddControllers();

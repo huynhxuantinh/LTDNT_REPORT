@@ -61,7 +61,7 @@ class CartApi {
   static Future<Cart> setQuantity(int id, int quantity) =>
       _request('PUT', '/items/$id', {'quantity': quantity});
   static Future<Cart> remove(int id) => _request('DELETE', '/items/$id');
-  static Future<void> checkout({
+  static Future<int> checkout({
     required String name,
     required String phone,
     required String address,
@@ -83,6 +83,8 @@ class CartApi {
     );
     if (r.statusCode != 200) throw const ApiException('Không thể đặt hàng.');
     cartCount.value = 0;
+    final data = jsonDecode(r.body) as Map<String, dynamic>;
+    return data['orderId'] as int;
   }
 
   static Future<Cart> _request(

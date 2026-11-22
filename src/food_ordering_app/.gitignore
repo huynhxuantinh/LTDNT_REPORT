@@ -38,7 +38,7 @@ migrate_working_dir/
 /lib/bike_repository.dart
 /lib/cart.dart
 /lib/cart_ext.dart
-/lib/cart_page.dart
+# /lib/cart_page.dart
 /lib/cart_repository.dart
 /lib/category.dart
 /lib/category_page.dart
