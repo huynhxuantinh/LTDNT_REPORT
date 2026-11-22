@@ -47,6 +47,8 @@ API development mặc định nghe tại `http://localhost:5000`. Có thể ki�
 
 Tính năng email cần cấu hình SMTP local (`Smtp:Host`, `Port`, `User`, `Password`, `From`); không lưu mật khẩu trong file mẫu hoặc commit. Mailtrap Sandbox chỉ nhận email thử nghiệm trong inbox sandbox, không gửi tới hộp thư thật.
 
+Email chứa nút xác thực hoặc đặt lại mật khẩu. Cấu hình `EmailLinks:BaseUrl` trong `appsettings.Development.json` thành địa chỉ API mà trình duyệt mở email truy cập được: `http://localhost:5000` nếu mở trên máy API, hoặc địa chỉ LAN của máy API nếu mở trên điện thoại cùng mạng (chạy API với `--urls http://0.0.0.0:5000`). Với môi trường thật cần URL HTTPS. Mã trong email cũng có thể nhập trực tiếp trong ứng dụng.
+
 ## Cấu hình và chạy Flutter
 
 Từ thư mục gốc repository:

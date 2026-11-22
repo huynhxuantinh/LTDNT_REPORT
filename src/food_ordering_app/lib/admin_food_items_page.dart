@@ -60,7 +60,7 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
     body: Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Column(
             children: [
               TextField(
@@ -69,6 +69,10 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
                 onSubmitted: (_) => _applyFilters(),
                 decoration: InputDecoration(
                   labelText: 'Tìm món ăn',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   suffixIcon: IconButton(
                     onPressed: _applyFilters,
                     icon: const Icon(Icons.search),
@@ -82,7 +86,10 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
                   final categories = snapshot.data ?? [];
                   return DropdownButtonFormField<int?>(
                     value: _categoryId,
-                    decoration: const InputDecoration(labelText: 'Danh mục'),
+                    decoration: const InputDecoration(
+                      labelText: 'Danh mục',
+                      prefixIcon: Icon(Icons.category_outlined),
+                    ),
                     items: [
                       const DropdownMenuItem<int?>(
                         value: null,
@@ -120,9 +127,9 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
               if (result.items.isEmpty)
                 return const AppEmptyState(message: 'Không có món phù hợp.');
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: result.items.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) =>
                     _FoodItemTile(item: result.items[index]),
               );
@@ -177,18 +184,23 @@ class _FoodItemTile extends StatelessWidget {
   const _FoodItemTile({required this.item});
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    leading: CircleAvatar(
-      child: Icon(item.isAvailable ? Icons.restaurant : Icons.visibility_off),
-    ),
-    title: Text(item.name),
-    subtitle: Text('${item.categoryName} · ${item.price.toStringAsFixed(0)} đ'),
-    trailing: Text(
-      item.isAvailable ? 'Đang bán' : 'Đã ẩn',
-      style: TextStyle(
-        color: item.isAvailable
-            ? Colors.green
-            : Theme.of(context).colorScheme.error,
+  Widget build(BuildContext context) => Card(
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      leading: CircleAvatar(
+        child: Icon(item.isAvailable ? Icons.restaurant : Icons.visibility_off),
+      ),
+      title: Text(item.name),
+      subtitle: Text(
+        '${item.categoryName} · ${item.price.toStringAsFixed(0)} đ',
+      ),
+      trailing: Text(
+        item.isAvailable ? 'Đang bán' : 'Đã ẩn',
+        style: TextStyle(
+          color: item.isAvailable
+              ? Colors.green
+              : Theme.of(context).colorScheme.error,
+        ),
       ),
     ),
   );

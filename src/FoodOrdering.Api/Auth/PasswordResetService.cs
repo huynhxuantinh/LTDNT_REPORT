@@ -24,7 +24,8 @@ public sealed class PasswordResetService(FoodOrderingDbContext db, IConfiguratio
         try
         {
             using var client = new SmtpClient(config["Smtp:Host"], int.Parse(config["Smtp:Port"] ?? "2525")) { EnableSsl = true, Credentials = new NetworkCredential(config["Smtp:User"], config["Smtp:Password"]) };
-            using var message = new MailMessage(config["Smtp:From"] ?? "noreply@foodordering.local", user.Email) { Subject = "Dat lai mat khau", Body = $"Ma dat lai mat khau (het han sau 30 phut): {token}" };
+            var link = EmailLinks.Create(config, "/email/reset-password", token);
+            using var message = new MailMessage(config["Smtp:From"] ?? "noreply@foodordering.local", user.Email) { Subject = "Đặt lại mật khẩu", IsBodyHtml = true, Body = EmailLinks.Html("Đặt lại mật khẩu", "Bấm nút để đặt mật khẩu mới. Liên kết hết hạn sau 30 phút.", link, token) };
             await client.SendMailAsync(message, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

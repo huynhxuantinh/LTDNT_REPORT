@@ -114,31 +114,43 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
         return RefreshIndicator(
           onRefresh: () async => setState(_reload),
           child: ListView.separated(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             itemCount: categories.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final category = categories[index];
-              return ListTile(
-                title: Text(category.name),
-                subtitle:
-                    category.description == null ||
-                        category.description!.isEmpty
-                    ? null
-                    : Text(category.description!),
-                trailing: Wrap(
-                  children: [
-                    IconButton(
-                      onPressed: () => _edit(category),
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Sửa',
-                    ),
-                    IconButton(
-                      onPressed: () => _delete(category),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Xóa',
-                    ),
-                  ],
+              return Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
+                    child: const Icon(Icons.category_outlined),
+                  ),
+                  title: Text(category.name),
+                  subtitle:
+                      category.description == null ||
+                          category.description!.isEmpty
+                      ? null
+                      : Text(category.description!),
+                  trailing: Wrap(
+                    children: [
+                      IconButton(
+                        onPressed: () => _edit(category),
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Sửa',
+                      ),
+                      IconButton(
+                        onPressed: () => _delete(category),
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Xóa',
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -194,28 +206,31 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(widget.title),
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TextField(
-          controller: widget.nameController,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Tên danh mục'),
-        ),
-        TextField(
-          controller: widget.descriptionController,
-          maxLines: 3,
-          decoration: const InputDecoration(labelText: 'Mô tả'),
-        ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: widget.nameController,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Tên danh mục'),
           ),
-      ],
+          const SizedBox(height: 12),
+          TextField(
+            controller: widget.descriptionController,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'Mô tả'),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+        ],
+      ),
     ),
     actions: [
       TextButton(

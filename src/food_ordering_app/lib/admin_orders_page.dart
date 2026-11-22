@@ -75,7 +75,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     body: Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
             controller: _search,
             onSubmitted: (_) => setState(() {
@@ -84,6 +84,10 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
             }),
             decoration: InputDecoration(
               labelText: 'Mã đơn, tên hoặc SĐT',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: () => setState(() {
@@ -138,16 +142,31 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                             message: 'Không tìm thấy đơn hàng.',
                           )
                         : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final order =
                                   items[index] as Map<String, dynamic>;
-                              return ListTile(
-                                title: Text(order['orderCode'] as String),
-                                subtitle: Text(
-                                  '${order['receiverName'] ?? 'Khách tại quán'} · ${order['status']}',
+                              return Card(
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 6,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                    child: const Icon(
+                                      Icons.receipt_long_outlined,
+                                    ),
+                                  ),
+                                  title: Text(order['orderCode'] as String),
+                                  subtitle: Text(
+                                    '${order['receiverName'] ?? 'Khách tại quán'} · ${order['status']}',
+                                  ),
+                                  trailing: Text('${order['totalAmount']} đ'),
                                 ),
-                                trailing: Text('${order['totalAmount']} đ'),
                               );
                             },
                           ),

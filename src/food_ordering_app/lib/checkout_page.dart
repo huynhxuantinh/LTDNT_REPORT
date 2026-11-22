@@ -14,6 +14,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       address = TextEditingController(),
       note = TextEditingController();
   bool loading = false;
+  @override
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+    address.dispose();
+    note.dispose();
+    super.dispose();
+  }
+
   Future<void> submit() async {
     if (!form.currentState!.validate()) return;
     setState(() => loading = true);
@@ -25,6 +34,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
         note: note.text,
       );
       if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể đặt hàng. Vui lòng thử lại.'),
+          ),
+        );
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -32,38 +48,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Checkout')),
-    body: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: form,
-        child: Column(
-          children: [
-            TextFormField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Tên người nhận'),
-              validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
-            ),
-            TextFormField(
-              controller: phone,
-              decoration: const InputDecoration(labelText: 'SĐT'),
-              validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
-            ),
-            TextFormField(
-              controller: address,
-              decoration: const InputDecoration(labelText: 'Địa chỉ'),
-              validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
-            ),
-            TextField(
-              controller: note,
-              decoration: const InputDecoration(labelText: 'Ghi chú'),
-            ),
-            const Spacer(),
-            FilledButton(
-              onPressed: loading ? null : submit,
-              child: const Text('Đặt hàng'),
-            ),
-          ],
+    appBar: AppBar(title: const Text('Thông tin giao hàng')),
+    body: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Giao đến bạn',
+                style: Theme.of(c).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('Vui lòng điền thông tin người nhận.'),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Tên người nhận'),
+                validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'SĐT'),
+                validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: address,
+                decoration: const InputDecoration(labelText: 'Địa chỉ'),
+                validator: (v) => v!.isEmpty ? 'Bắt buộc' : null,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: note,
+                decoration: const InputDecoration(labelText: 'Ghi chú'),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: loading ? null : submit,
+                child: Text(loading ? 'Đang đặt hàng...' : 'Đặt hàng'),
+              ),
+            ],
+          ),
         ),
       ),
     ),

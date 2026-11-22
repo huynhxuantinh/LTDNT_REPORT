@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/session_helper.dart';
+import 'package:trek_bikes_app/staff_payment_page.dart';
 
 class StaffOrdersPage extends StatefulWidget {
   const StaffOrdersPage({super.key});
@@ -105,6 +106,22 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                     Wrap(
                       spacing: 8,
                       children: [
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StaffPaymentPage(
+                                orderCode: order['orderCode'] as String,
+                                orderType: order['orderType'] as String,
+                                orderStatus: status,
+                                paymentStatus: order['paymentStatus'] as String,
+                                totalAmount: order['totalAmount'] as num,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.receipt_long_outlined),
+                          label: const Text('Xem thanh toán'),
+                        ),
                         if (next != null)
                           OutlinedButton(
                             onPressed: busy

@@ -1,0 +1,42 @@
+using System.Net;
+using FoodOrdering.Api.Auth;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace FoodOrdering.Api.Controllers;
+
+[Route("email")]
+[EnableRateLimiting("auth")]
+public sealed class EmailPagesController(EmailVerificationService verification, PasswordResetService reset) : Controller
+{
+    private IActionResult Page(string title, string content)
+    {
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        return Content($"<!doctype html><html lang=\"vi\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{WebUtility.HtmlEncode(title)}</title></head><body style=\"font-family:Arial,sans-serif;max-width:480px;margin:48px auto;padding:16px;line-height:1.6\"><h1>{WebUtility.HtmlEncode(title)}</h1>{content}</body></html>", "text/html; charset=utf-8");
+    }
+
+    [HttpGet("verify")]
+    public IActionResult VerifyForm([FromQuery] string? token) => ValidToken(token)
+        ? Page("Xác thực email", $"<p>Nhấn nút để xác nhận tài khoản.</p><form method=\"post\" action=\"/email/verify\"><input type=\"hidden\" name=\"token\" value=\"{WebUtility.HtmlEncode(token)}\"><button type=\"submit\">Xác thực</button></form>")
+        : Page("Liên kết không hợp lệ", "<p>Vui lòng kiểm tra lại liên kết.</p>");
+
+    [HttpPost("verify")]
+    public async Task<IActionResult> Verify([FromForm] string? token, CancellationToken ct) =>
+        ValidToken(token) && await verification.VerifyAsync(token!, ct)
+            ? Page("Xác thực thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>")
+            : Page("Không thể xác thực", "<p>Liên kết không hợp lệ, đã dùng hoặc hết hạn.</p>");
+
+    [HttpGet("reset-password")]
+    public IActionResult ResetForm([FromQuery] string? token) => ValidToken(token)
+        ? Page("Đặt lại mật khẩu", $"<form method=\"post\" action=\"/email/reset-password\"><input type=\"hidden\" name=\"token\" value=\"{WebUtility.HtmlEncode(token)}\"><label>Mật khẩu mới (ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số)<br><input type=\"password\" name=\"password\" minlength=\"8\" maxlength=\"128\" required autocomplete=\"new-password\"></label><p><button type=\"submit\">Đặt lại mật khẩu</button></p></form>")
+        : Page("Liên kết không hợp lệ", "<p>Vui lòng kiểm tra lại liên kết.</p>");
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> Reset([FromForm] string? token, [FromForm] string? password, CancellationToken ct) =>
+        ValidToken(token) && password is { Length: >= 8 and <= 128 } && await reset.ResetAsync(token!, password, ct)
+            ? Page("Đặt lại mật khẩu thành công", "<p>Bạn có thể quay lại ứng dụng để đăng nhập.</p>")
+            : Page("Không thể đặt lại mật khẩu", "<p>Liên kết không hợp lệ, đã dùng hoặc hết hạn, hoặc mật khẩu chưa đúng yêu cầu.</p>");
+
+    private static bool ValidToken(string? token) => token is { Length: >= 32 and <= 128 };
+}

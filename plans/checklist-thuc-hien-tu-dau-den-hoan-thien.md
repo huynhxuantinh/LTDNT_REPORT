@@ -65,7 +65,7 @@
 - [x] API Admin gán/đổi role Member/Staff/Admin.
 - [x] API Admin khóa/mở khóa user.
 - [x] `[Authorize(Roles = "Admin")]` cho API quản trị.
-- [ ] `[Authorize(Roles = "Admin,Staff")]` cho API xử lý đơn offline.
+- [x] `[Authorize(Roles = "Admin,Staff")]` cho API xử lý đơn offline.
 - [x] Member chỉ xem/sửa dữ liệu của chính mình.
 - [x] Test Member gọi Admin API nhận `403`.
 - [x] Test Staff gọi Admin API nhận `403`.
@@ -174,5 +174,6 @@
 - [x] Hoàn thiện README: cài SQL, cấu hình API, chạy Flutter, account demo.
 - [ ] Viết tài liệu API, ERD, use case, sơ đồ kiến trúc.
 - [ ] Tạo APK release.
-- [ ] Chuẩn bị data demo, video demo và slide bảo vệ.
+- [x] Chuẩn bị data demo.
+- [ ] Chuẩn bị video demo và slide bảo vệ.
 - [ ] Push nhánh `dev`, kiểm tra diff rồi merge vào `main` khi sẵn sàng.

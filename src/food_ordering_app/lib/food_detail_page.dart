@@ -27,6 +27,11 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Đã thêm vào giỏ hàng.')));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể thêm món vào giỏ.')),
+        );
     } finally {
       if (mounted) setState(() => _adding = false);
     }
@@ -46,25 +51,52 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
                 setState(() => _food = MemberFoodApi.getById(widget.foodId)),
           );
         final x = s.data!;
-        return Padding(
+        return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(x.name, style: Theme.of(c).textTheme.headlineSmall),
+              Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(c).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  Icons.restaurant,
+                  size: 72,
+                  color: Theme.of(c).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                x.name,
+                style: Theme.of(c).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               Text(x.categoryName),
               const SizedBox(height: 12),
-              Text('${x.price.toStringAsFixed(0)} đ'),
+              Text(
+                '${x.price.toStringAsFixed(0)} đ',
+                style: Theme.of(c).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(c).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               if (x.description != null) ...[
                 const SizedBox(height: 12),
                 Text(x.description!),
               ],
-              const Spacer(),
-              FilledButton.icon(
-                onPressed: _adding ? null : _add,
-                icon: const Icon(Icons.add_shopping_cart),
-                label: Text(_adding ? 'Đang thêm...' : 'Thêm vào giỏ'),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _adding ? null : _add,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: Text(_adding ? 'Đang thêm...' : 'Thêm vào giỏ'),
+                ),
               ),
             ],
           ),

@@ -9,6 +9,7 @@ import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/cart_page.dart';
 import 'package:trek_bikes_app/orders_page.dart';
 import 'package:trek_bikes_app/admin_orders_page.dart';
+import 'package:trek_bikes_app/admin_users_page.dart';
 import 'package:trek_bikes_app/staff_order_page.dart';
 import 'package:trek_bikes_app/staff_orders_page.dart';
 import 'package:trek_bikes_app/role_guard.dart';
@@ -59,21 +60,30 @@ class _LoginPageState extends State<LoginPage> {
     appBar: AppBar(title: const Text('Đăng nhập')),
     body: _FormLayout(
       formKey: _formKey,
+      title: 'Chào mừng bạn trở lại',
+      subtitle: 'Đăng nhập để đặt món và theo dõi đơn hàng của bạn.',
+      icon: Icons.restaurant_menu_rounded,
       children: [
         _emailField(_email),
-        _passwordField(_password, 'Mật khẩu'),
-        TextButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
-          ),
-          child: const Text('Quên mật khẩu?'),
-        ),
         const SizedBox(height: 16),
+        _passwordField(_password, 'Mật khẩu'),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+            ),
+            child: const Text('Quên mật khẩu?'),
+          ),
+        ),
+        const SizedBox(height: 8),
         FilledButton(
           onPressed: _loading ? null : _submit,
           child: Text(_loading ? 'Đang đăng nhập...' : 'Đăng nhập'),
         ),
+        const SizedBox(height: 16),
+        const Divider(),
         TextButton(
           onPressed: () => Navigator.push(
             context,
@@ -140,48 +150,57 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Quên mật khẩu')),
-    body: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Email'),
+    body: _AuthLayout(
+      title: 'Khôi phục mật khẩu',
+      subtitle: 'Nhập email để nhận liên kết hoặc mã đặt lại mật khẩu.',
+      icon: Icons.lock_reset_rounded,
+      children: [
+        const _SectionLabel(number: '1', label: 'Nhận mã qua email'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: email,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Email'),
+        ),
+        FilledButton(
+          onPressed: loading
+              ? null
+              : () => run(
+                  () => AuthApi.forgotPassword(email.text),
+                  'Nếu tài khoản tồn tại, mã đã được gửi qua email.',
+                ),
+          child: const Text('Gửi mã'),
+        ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+        const _SectionLabel(number: '2', label: 'Nhập mã và mật khẩu mới'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: token,
+          decoration: const InputDecoration(labelText: 'Mã từ email'),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: password,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Mật khẩu mới',
+            helperText: 'Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
+            helperMaxLines: 2,
           ),
-          FilledButton(
-            onPressed: loading
-                ? null
-                : () => run(
-                    () => AuthApi.forgotPassword(email.text),
-                    'Nếu tài khoản tồn tại, mã đã được gửi qua email.',
-                  ),
-            child: const Text('Gửi mã'),
-          ),
-          TextField(
-            controller: token,
-            decoration: const InputDecoration(labelText: 'Mã từ email'),
-          ),
-          TextField(
-            controller: password,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText:
-                  'Mật khẩu mới (ít nhất 8 ký tự, chữ hoa, chữ thường và số)',
-            ),
-          ),
-          FilledButton(
-            onPressed: loading
-                ? null
-                : () => run(
-                    () => AuthApi.resetPassword(token.text, password.text),
-                    'Đổi mật khẩu thành công. Hãy đăng nhập.',
-                  ),
-            child: const Text('Đặt lại mật khẩu'),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: loading
+              ? null
+              : () => run(
+                  () => AuthApi.resetPassword(token.text, password.text),
+                  'Đổi mật khẩu thành công. Hãy đăng nhập.',
+                ),
+          child: const Text('Đặt lại mật khẩu'),
+        ),
+      ],
     ),
   );
 }
@@ -235,22 +254,23 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Xác thực email')),
-    body: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          TextField(
-            controller: token,
-            decoration: const InputDecoration(
-              labelText: 'Mã xác thực trong email',
-            ),
+    body: _AuthLayout(
+      title: 'Xác thực email',
+      subtitle: 'Bấm liên kết trong email hoặc nhập mã xác thực bên dưới.',
+      icon: Icons.mark_email_read_outlined,
+      children: [
+        TextField(
+          controller: token,
+          decoration: const InputDecoration(
+            labelText: 'Mã xác thực trong email',
           ),
-          FilledButton(
-            onPressed: loading ? null : submit,
-            child: const Text('Xác thực'),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 20),
+        FilledButton(
+          onPressed: loading ? null : submit,
+          child: const Text('Xác thực'),
+        ),
+      ],
     ),
   );
 }
@@ -297,13 +317,18 @@ class _RegisterPageState extends State<RegisterPage> {
     appBar: AppBar(title: const Text('Đăng ký')),
     body: _FormLayout(
       formKey: _formKey,
+      title: 'Tạo tài khoản',
+      subtitle: 'Điền thông tin để bắt đầu đặt món.',
+      icon: Icons.person_add_alt_1_rounded,
       children: [
         TextFormField(
           controller: _name,
           decoration: const InputDecoration(labelText: 'Họ và tên'),
           validator: _required,
         ),
+        const SizedBox(height: 16),
         _emailField(_email),
+        const SizedBox(height: 16),
         _passwordField(_password, 'Mật khẩu'),
         const Padding(
           padding: EdgeInsets.only(top: 8),
@@ -421,7 +446,7 @@ class _AccountHomeState extends State<AccountHome> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Đặt món ăn'),
+      title: const Text('Thực đơn'),
       actions: [
         ValueListenableBuilder<int>(
           valueListenable: cartCount,
@@ -448,11 +473,150 @@ class _AccountHomeState extends State<AccountHome> {
         ),
       ],
     ),
+    drawer: Drawer(
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.restaurant_menu,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Đặt món ăn',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  Text(_role == null ? 'Tài khoản' : 'Tài khoản · $_role'),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Đơn hàng của tôi'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OrdersPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Đổi mật khẩu'),
+              onTap: () {
+                Navigator.pop(context);
+                _changePassword();
+              },
+            ),
+            if (_role == 'Admin' || _role == 'Staff') const Divider(),
+            if (_role == 'Staff' || _role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.add_shopping_cart),
+                title: const Text('Tạo đơn tại quán'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const StaffOrderPage()),
+                  );
+                },
+              ),
+            if (_role == 'Staff' || _role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.point_of_sale),
+                title: const Text('Xử lý đơn tại quán'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const StaffOrdersPage()),
+                  );
+                },
+              ),
+            if (_role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.restaurant),
+                title: const Text('Quản lý món ăn'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openAdminFoodItems();
+                },
+              ),
+            if (_role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: const Text('Quản lý danh mục'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openAdminCategories();
+                },
+              ),
+            if (_role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.people_outline),
+                title: const Text('Quản lý người dùng'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openAdminUsers();
+                },
+              ),
+            if (_role == 'Admin')
+              ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: const Text('Quản lý đơn hàng'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RoleGuard(
+                        role: _role,
+                        allowedRoles: const {'Admin'},
+                        child: const AdminOrdersPage(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: Text(_loading ? 'Đang thoát...' : 'Đăng xuất'),
+              enabled: !_loading,
+              onTap: () {
+                Navigator.pop(context);
+                _logout();
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
     body: Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Danh mục',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
         SizedBox(
-          height: 170,
+          height: 52,
           child: HomeCategories(
+            selectedId: _selectedCategory?.categoryId,
             onSelected: (category) =>
                 setState(() => _selectedCategory = category),
           ),
@@ -461,81 +625,6 @@ class _AccountHomeState extends State<AccountHome> {
           child: HomeLatestFoods(
             categoryId: _selectedCategory?.categoryId,
             categoryName: _selectedCategory?.name,
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_role == 'Admin')
-                  OutlinedButton(
-                    onPressed: _openAdminFoodItems,
-                    child: const Text('Quản lý món ăn'),
-                  ),
-                if (_role == 'Staff' || _role == 'Admin')
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const StaffOrderPage()),
-                    ),
-                    child: const Text('Tạo đơn tại quán'),
-                  ),
-                if (_role == 'Staff' || _role == 'Admin')
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const StaffOrdersPage(),
-                      ),
-                    ),
-                    child: const Text('Xử lý đơn tại quán'),
-                  ),
-                if (_role == 'Admin')
-                  OutlinedButton(
-                    onPressed: _openAdminCategories,
-                    child: const Text('Quản lý danh mục'),
-                  ),
-                if (_role == 'Admin')
-                  OutlinedButton(
-                    onPressed: _openAdminUsers,
-                    child: const Text('Quản lý người dùng'),
-                  ),
-                const Text('Bạn đã đăng nhập.'),
-                if (_role == 'Admin')
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RoleGuard(
-                          role: _role,
-                          allowedRoles: const {'Admin'},
-                          child: const AdminOrdersPage(),
-                        ),
-                      ),
-                    ),
-                    child: const Text('Quản lý đơn hàng'),
-                  ),
-                OutlinedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const OrdersPage()),
-                  ),
-                  child: const Text('Đơn hàng của tôi'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _changePassword,
-                  child: const Text('Đổi mật khẩu'),
-                ),
-                FilledButton.tonal(
-                  onPressed: _loading ? null : _logout,
-                  child: Text(_loading ? 'Đang thoát...' : 'Đăng xuất'),
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -599,9 +688,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     appBar: AppBar(title: const Text('Đổi mật khẩu')),
     body: _FormLayout(
       formKey: _formKey,
+      title: 'Bảo mật tài khoản',
+      subtitle: 'Nhập mật khẩu hiện tại và chọn mật khẩu mới.',
+      icon: Icons.lock_outline_rounded,
       children: [
         _passwordField(_current, 'Mật khẩu hiện tại'),
+        const SizedBox(height: 16),
         _passwordField(_next, 'Mật khẩu mới'),
+        const SizedBox(height: 8),
+        const Text(
+          'Mật khẩu mới cần ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
+        ),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _loading ? null : _submit,
@@ -619,7 +716,44 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 class _FormLayout extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final List<Widget> children;
-  const _FormLayout({required this.formKey, required this.children});
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  const _FormLayout({
+    required this.formKey,
+    required this.children,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+  @override
+  Widget build(BuildContext context) => _AuthLayout(
+    title: title,
+    subtitle: subtitle,
+    icon: icon,
+    children: [
+      Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      ),
+    ],
+  );
+}
+
+class _AuthLayout extends StatelessWidget {
+  const _AuthLayout({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.children,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Widget> children;
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Center(
@@ -627,12 +761,39 @@ class _FormLayout extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer,
+                  child: Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    size: 28,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 28),
+              ...children,
+            ],
           ),
         ),
       ),
@@ -640,10 +801,29 @@ class _FormLayout extends StatelessWidget {
   );
 }
 
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.number, required this.label});
+  final String number;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      CircleAvatar(radius: 14, child: Text(number)),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+      ),
+    ],
+  );
+}
+
 TextFormField _emailField(TextEditingController controller) => TextFormField(
   controller: controller,
   keyboardType: TextInputType.emailAddress,
-  decoration: const InputDecoration(labelText: 'Email'),
+  decoration: const InputDecoration(
+    labelText: 'Email',
+    prefixIcon: Icon(Icons.mail_outline),
+  ),
   validator: (value) =>
       value != null && value.contains('@') ? null : 'Email không hợp lệ.',
 );
@@ -651,7 +831,10 @@ TextFormField _passwordField(TextEditingController controller, String label) =>
     TextFormField(
       controller: controller,
       obscureText: true,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.lock_outline),
+      ),
       validator: (value) => value != null && value.length >= 8
           ? null
           : 'Mật khẩu tối thiểu 8 ký tự.',

@@ -21,17 +21,3 @@ class RoleGuard extends StatelessWidget {
     );
   }
 }
-
-class AdminUserManagementPage extends StatelessWidget {
-  const AdminUserManagementPage({super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Quản lý người dùng')),
-    body: const Center(
-      child: Text(
-        'Màn hình quản lý người dùng sẽ được hoàn thiện ở bước tiếp theo.',
-      ),
-    ),
-  );
-}
