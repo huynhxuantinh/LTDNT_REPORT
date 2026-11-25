@@ -5,9 +5,14 @@ import 'package:http/http.dart' as http;
 import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:trek_bikes_app/app_states.dart';
+import 'package:trek_bikes_app/staff_payment_page.dart';
 
 class StaffOrderPage extends StatefulWidget {
-  const StaffOrderPage({super.key});
+  const StaffOrderPage({super.key, this.loadFoods, this.loadTables});
+  final Future<MemberFoodPage> Function(int page, int pageSize, String search)?
+  loadFoods;
+  final Future<List<dynamic>> Function()? loadTables;
   @override
   State<StaffOrderPage> createState() => _StaffOrderPageState();
 }
@@ -19,12 +24,44 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
   final items = <int, int>{};
   late Future<List<dynamic>> tables;
   late Future<MemberFoodPage> foods;
+  static const _pageSize = 10;
+  int _foodPage = 1;
+  final _searchController = TextEditingController();
+  String _search = '';
   @override
   void initState() {
     super.initState();
-    tables = _tables();
-    foods = MemberFoodApi.getPage(page: 1, pageSize: 100);
+    tables = widget.loadTables?.call() ?? _tables();
+    foods = _loadFoods();
   }
+
+  Future<MemberFoodPage> _loadFoods() =>
+      widget.loadFoods?.call(_foodPage, _pageSize, _search) ??
+      MemberFoodApi.getPage(
+        page: _foodPage,
+        pageSize: _pageSize,
+        search: _search,
+      );
+
+  void _applySearch() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _search = _searchController.text.trim();
+      _foodPage = 1;
+      foods = _loadFoods();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _goToFoodPage(int page) => setState(() {
+    _foodPage = page;
+    foods = _loadFoods();
+  });
 
   Future<List<dynamic>> _tables() async {
     final t = await SessionHelper.accessToken;
@@ -36,7 +73,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
     return jsonDecode(utf8.decode(r.bodyBytes));
   }
 
-  Future<void> _create() async {
+  Future<void> _create({bool goToPayment = false}) async {
     setState(() => saving = true);
     try {
       final t = await SessionHelper.accessToken;
@@ -60,10 +97,58 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
         setState(() {
           items.clear();
           tableId = null;
-          tables = _tables();
+          tables = widget.loadTables?.call() ?? _tables();
         });
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Đã tạo đơn.')));
+        if (goToPayment) {
+          Map<String, dynamic>? order;
+          try {
+            order = jsonDecode(
+              utf8.decode(response.bodyBytes),
+            ) as Map<String, dynamic>;
+          } catch (_) {
+            // The order is already saved; avoid submitting it a second time.
+          }
+          if (order?['orderId'] is int &&
+              order?['orderCode'] is String &&
+              order?['orderType'] is String &&
+              order?['status'] is String &&
+              order?['paymentStatus'] is String &&
+              order?['totalAmount'] is num) {
+            final paid = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StaffPaymentPage(
+                  orderId: order!['orderId'] as int,
+                  orderCode: order['orderCode'] as String,
+                  orderType: order['orderType'] as String,
+                  orderStatus: order['status'] as String,
+                  paymentStatus: order['paymentStatus'] as String,
+                  totalAmount: order['totalAmount'] as num,
+                  backLabel: 'Quay lại tạo đơn',
+                ),
+              ),
+            );
+            if (mounted) {
+              setState(() => tables = widget.loadTables?.call() ?? _tables());
+              if (paid == true) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã thanh toán đơn.')),
+                );
+              }
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Đã tạo đơn. Mở Xử lý đơn tại quán để thanh toán.',
+                ),
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Đã tạo đơn.')));
+        }
       }
     } catch (_) {
       if (mounted)
@@ -107,54 +192,151 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
               onChanged: (v) => setState(() => tableId = v),
             ),
           ),
-        Expanded(
-          child: FutureBuilder<MemberFoodPage>(
-            future: foods,
-            builder: (c, s) => ListView(
-              children: (s.data?.items ?? [])
-                  .map(
-                    (f) => ListTile(
-                      title: Text(f.name),
-                      trailing: items.containsKey(f.foodItemId)
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  onPressed: () => setState(
-                                    () => items[f.foodItemId] == 1
-                                        ? items.remove(f.foodItemId)
-                                        : items[f.foodItemId] =
-                                              items[f.foodItemId]! - 1,
-                                  ),
-                                  icon: const Icon(Icons.remove),
-                                ),
-                                Text('${items[f.foodItemId]}'),
-                                IconButton(
-                                  onPressed: () => setState(
-                                    () => items[f.foodItemId] =
-                                        (items[f.foodItemId] ?? 0) + 1,
-                                  ),
-                                  icon: const Icon(Icons.add),
-                                ),
-                              ],
-                            )
-                          : IconButton(
-                              onPressed: () =>
-                                  setState(() => items[f.foodItemId] = 1),
-                              icon: const Icon(Icons.add_shopping_cart),
-                            ),
-                    ),
-                  )
-                  .toList(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _applySearch(),
+            decoration: InputDecoration(
+              hintText: 'Tìm món ăn',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Xóa tìm kiếm',
+                    onPressed: () {
+                      _searchController.clear();
+                      _applySearch();
+                    },
+                    icon: const Icon(Icons.clear),
+                  ),
+                  IconButton(
+                    tooltip: 'Tìm kiếm',
+                    onPressed: _applySearch,
+                    icon: const Icon(Icons.arrow_forward),
+                  ),
+                ],
+              ),
+              border: const OutlineInputBorder(),
             ),
           ),
         ),
-        FilledButton(
-          onPressed:
-              saving || items.isEmpty || (type == 'DineIn' && tableId == null)
-              ? null
-              : _create,
-          child: const Text('Tạo đơn'),
+        Expanded(
+          child: FutureBuilder<MemberFoodPage>(
+            future: foods,
+            builder: (c, s) {
+              if (s.connectionState != ConnectionState.done) {
+                return const AppLoadingState(message: 'Đang tải món ăn...');
+              }
+              if (s.hasError) {
+                return AppErrorState(
+                  onRetry: () => setState(() => foods = _loadFoods()),
+                );
+              }
+              final result = s.data!;
+              return Column(
+                children: [
+                  if (result.isOffline)
+                    const Text('Đang xem món đã lưu trên máy.'),
+                  Expanded(
+                    child: result.items.isEmpty
+                        ? const AppEmptyState(message: 'Không tìm thấy món ăn.')
+                        : ListView.builder(
+                            itemCount: result.items.length,
+                            itemBuilder: (context, index) {
+                              final f = result.items[index];
+                              return ListTile(
+                                title: Text(f.name),
+                                trailing: items.containsKey(f.foodItemId)
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            onPressed: () => setState(
+                                              () => items[f.foodItemId] == 1
+                                                  ? items.remove(f.foodItemId)
+                                                  : items[f.foodItemId] =
+                                                        items[f.foodItemId]! -
+                                                        1,
+                                            ),
+                                            icon: const Icon(Icons.remove),
+                                          ),
+                                          Text('${items[f.foodItemId]}'),
+                                          IconButton(
+                                            onPressed: () => setState(
+                                              () => items[f.foodItemId] =
+                                                  (items[f.foodItemId] ?? 0) +
+                                                  1,
+                                            ),
+                                            icon: const Icon(Icons.add),
+                                          ),
+                                        ],
+                                      )
+                                    : IconButton(
+                                        onPressed: () => setState(
+                                          () => items[f.foodItemId] = 1,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.add_shopping_cart,
+                                        ),
+                                      ),
+                              );
+                            },
+                          ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        tooltip: 'Trang trước',
+                        onPressed: _foodPage > 1
+                            ? () => _goToFoodPage(_foodPage - 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Text(
+                        'Trang ${result.page}/${result.totalPages == 0 ? 1 : result.totalPages}',
+                      ),
+                      IconButton(
+                        tooltip: 'Trang sau',
+                        onPressed: _foodPage < result.totalPages
+                            ? () => _goToFoodPage(_foodPage + 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          children: [
+            OutlinedButton(
+              onPressed:
+                  saving ||
+                      items.isEmpty ||
+                      (type == 'DineIn' && tableId == null)
+                  ? null
+                  : () => _create(),
+              child: const Text('Tạo đơn'),
+            ),
+            FilledButton.icon(
+              onPressed:
+                  saving ||
+                      items.isEmpty ||
+                      (type == 'DineIn' && tableId == null)
+                  ? null
+                  : () => _create(goToPayment: true),
+              icon: const Icon(Icons.payment),
+              label: const Text('Tạo đơn và thanh toán'),
+            ),
+          ],
         ),
       ],
     ),

@@ -17,6 +17,7 @@ class StaffPaymentPage extends StatefulWidget {
     required this.orderStatus,
     required this.paymentStatus,
     required this.totalAmount,
+    this.backLabel = 'Quay lại danh sách đơn',
   });
 
   final int orderId;
@@ -25,6 +26,7 @@ class StaffPaymentPage extends StatefulWidget {
   final String orderStatus;
   final String paymentStatus;
   final num totalAmount;
+  final String backLabel;
 
   @override
   State<StaffPaymentPage> createState() => _StaffPaymentPageState();
@@ -200,7 +202,7 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: busy ? null : () => Navigator.pop(context),
-                    child: const Text('Quay lại danh sách đơn'),
+                    child: Text(widget.backLabel),
                   ),
                 ],
               ),

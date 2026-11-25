@@ -622,6 +622,11 @@ class _AccountHomeState extends State<AccountHome> with WidgetsBindingObserver {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.home_outlined),
+              title: const Text('Trang chủ'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
               leading: const Icon(Icons.receipt_long_outlined),
               title: const Text('Đơn hàng của tôi'),
               onTap: () {

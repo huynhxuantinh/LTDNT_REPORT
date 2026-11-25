@@ -50,79 +50,144 @@ class OrdersPage extends StatefulWidget {
 }
 
 class _OrdersPageState extends State<OrdersPage> {
+  final _searchController = TextEditingController();
   late Future<dynamic> orders;
+  String _search = '';
+
   @override
   void initState() {
     super.initState();
-    orders = _load('');
+    orders = _loadOrders();
+  }
+
+  Future<dynamic> _loadOrders() {
+    final query = _search.isEmpty
+        ? ''
+        : '?${Uri(queryParameters: {'search': _search}).query}';
+    return _load(query);
+  }
+
+  void _submitSearch() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _search = _searchController.text.trim();
+      orders = _loadOrders();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Đơn hàng của tôi')),
-    body: FutureBuilder<dynamic>(
-      future: orders,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const AppLoadingState();
-        }
-        if (snapshot.hasError) {
-          return AppErrorState(
-            onRetry: () => setState(() => orders = _load('')),
-          );
-        }
-        final items = snapshot.data as List;
-        if (items.isEmpty) {
-          return const AppEmptyState(message: 'Bạn chưa có đơn hàng nào.');
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final order = items[index] as Map<String, dynamic>;
-            final isPaid = order['paymentStatus'] == 'Paid';
-            final estimate = _deliveryEstimate(order);
-            return Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                leading: CircleAvatar(
-                  backgroundColor: isPaid
-                      ? Colors.green.shade100
-                      : Colors.orange.shade100,
-                  child: Icon(
-                    isPaid
-                        ? Icons.check_circle_outline
-                        : Icons.receipt_long_outlined,
-                    color: isPaid ? Colors.green : Colors.orange,
+    body: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _submitSearch(),
+            decoration: InputDecoration(
+              hintText: 'Tìm theo mã đơn, tên hoặc SĐT',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Xóa tìm kiếm',
+                    onPressed: () {
+                      _searchController.clear();
+                      _submitSearch();
+                    },
+                    icon: const Icon(Icons.clear),
                   ),
-                ),
-                title: Text(
-                  order['orderCode'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${order['status']} · ${isPaid ? "Đã thanh toán" : "Chưa thanh toán"}\n${formatVnd(order['totalAmount'] as num)} đ${estimate == null ? '' : '\n$estimate'}',
-                ),
-                isThreeLine: true,
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () =>
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            OrderDetailPage(id: order['orderId'] as int),
-                      ),
-                    ).then((_) {
-                      if (mounted) setState(() => orders = _load(''));
-                    }),
+                  IconButton(
+                    tooltip: 'Tìm kiếm',
+                    onPressed: _submitSearch,
+                    icon: const Icon(Icons.arrow_forward),
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<dynamic>(
+            future: orders,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const AppLoadingState();
+              }
+              if (snapshot.hasError) {
+                return AppErrorState(
+                  onRetry: () => setState(() => orders = _loadOrders()),
+                );
+              }
+              final items = snapshot.data as List;
+              if (items.isEmpty) {
+                return AppEmptyState(
+                  message: _search.isEmpty
+                      ? 'Bạn chưa có đơn hàng nào.'
+                      : 'Không tìm thấy đơn hàng phù hợp.',
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final order = items[index] as Map<String, dynamic>;
+                  final isPaid = order['paymentStatus'] == 'Paid';
+                  final estimate = _deliveryEstimate(order);
+                  return Card(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: isPaid
+                            ? Colors.green.shade100
+                            : Colors.orange.shade100,
+                        child: Icon(
+                          isPaid
+                              ? Icons.check_circle_outline
+                              : Icons.receipt_long_outlined,
+                          color: isPaid ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                      title: Text(
+                        order['orderCode'] as String,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        '${order['status']} · ${isPaid ? "Đã thanh toán" : "Chưa thanh toán"}\n${formatVnd(order['totalAmount'] as num)} đ${estimate == null ? '' : '\n$estimate'}',
+                      ),
+                      isThreeLine: true,
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  OrderDetailPage(id: order['orderId'] as int),
+                            ),
+                          ).then((_) {
+                            if (mounted) setState(() => orders = _loadOrders());
+                          }),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     ),
   );
 }

@@ -17,6 +17,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('3'), findsOneWidget);
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Trang chủ'), findsOneWidget);
+    await tester.tap(find.text('Trang chủ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Thực đơn'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     cartCount.value = 0;
   });
