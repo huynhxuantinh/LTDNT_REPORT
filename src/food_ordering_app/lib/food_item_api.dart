@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/session_helper.dart';
@@ -121,9 +122,7 @@ class FoodItemApi {
       request.fields['Description'] = description.trim();
     }
     request.fields['Price'] = price.toStringAsFixed(2);
-    request.files.add(
-      http.MultipartFile.fromBytes('Image', imageBytes, filename: imageName),
-    );
+    request.files.add(_imagePart(imageBytes, imageName));
 
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
@@ -155,9 +154,7 @@ class FoodItemApi {
     }
     request.fields['Price'] = price.toStringAsFixed(2);
     if (imageBytes != null && imageName != null) {
-      request.files.add(
-        http.MultipartFile.fromBytes('Image', imageBytes, filename: imageName),
-      );
+      request.files.add(_imagePart(imageBytes, imageName));
     }
 
     final streamed = await request.send();
@@ -199,6 +196,26 @@ class FoodItemApi {
       headers: await _headers(),
     );
     _ensure(response, 200);
+  }
+
+  static http.MultipartFile _imagePart(Uint8List bytes, String fileName) {
+    final lower = fileName.toLowerCase();
+    final MediaType? contentType;
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      contentType = MediaType('image', 'jpeg');
+    } else if (lower.endsWith('.png')) {
+      contentType = MediaType('image', 'png');
+    } else if (lower.endsWith('.webp')) {
+      contentType = MediaType('image', 'webp');
+    } else {
+      contentType = null;
+    }
+    return http.MultipartFile.fromBytes(
+      'Image',
+      bytes,
+      filename: fileName,
+      contentType: contentType,
+    );
   }
 
   static Future<Map<String, String>> _headers() async {
