@@ -1,34 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/cart_api.dart';
+import 'package:trek_bikes_app/cart_icon_button.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 import 'package:trek_bikes_app/food_image.dart';
 import 'package:trek_bikes_app/money_format.dart';
 
 class FoodDetailPage extends StatefulWidget {
-  const FoodDetailPage({super.key, required this.foodId});
+  const FoodDetailPage({
+    super.key,
+    required this.foodId,
+    this.loadFood,
+    this.loadCart,
+    this.addToCart,
+  });
   final int foodId;
+  final Future<MemberFoodItem> Function(int)? loadFood;
+  final Future<Cart> Function()? loadCart;
+  final Future<Cart> Function(int)? addToCart;
   @override
   State<FoodDetailPage> createState() => _FoodDetailPageState();
 }
 
 class _FoodDetailPageState extends State<FoodDetailPage> {
   late Future<MemberFoodItem> _food;
+  late Future<void> _cartReady;
   bool _adding = false;
   @override
   void initState() {
     super.initState();
-    _food = MemberFoodApi.getById(widget.foodId);
+    _food = (widget.loadFood ?? MemberFoodApi.getById)(widget.foodId);
+    _cartReady = _refreshCart();
+  }
+
+  Future<void> _refreshCart() async {
+    try {
+      final cart = await (widget.loadCart ?? CartApi.get)();
+      cartCount.value = cart.totalQuantity;
+    } catch (_) {
+      // Keep the last known count if the cart is temporarily unavailable.
+    }
   }
 
   Future<void> _add() async {
     setState(() => _adding = true);
     try {
-      await CartApi.add(widget.foodId);
+      await _cartReady;
+      final cart = await (widget.addToCart ?? CartApi.add)(widget.foodId);
+      cartCount.value = cart.totalQuantity;
       if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Đã thêm vào giỏ hàng.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              cart.syncIssue != null
+                  ? 'Chưa đồng bộ được giỏ: ${cart.syncIssue}'
+                  : cart.isOffline
+                  ? 'Đã lưu tạm trên máy; sẽ đồng bộ khi có mạng.'
+                  : 'Đã thêm vào giỏ hàng.',
+            ),
+          ),
+        );
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -41,7 +72,10 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
 
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Chi tiết món')),
+    appBar: AppBar(
+      title: const Text('Chi tiết món'),
+      actions: const [CartIconButton()],
+    ),
     body: FutureBuilder<MemberFoodItem>(
       future: _food,
       builder: (c, s) {
@@ -49,8 +83,9 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
           return const AppLoadingState();
         if (s.hasError)
           return AppErrorState(
-            onRetry: () =>
-                setState(() => _food = MemberFoodApi.getById(widget.foodId)),
+            onRetry: () => setState(() {
+              _food = (widget.loadFood ?? MemberFoodApi.getById)(widget.foodId);
+            }),
           );
         final x = s.data!;
         return SingleChildScrollView(

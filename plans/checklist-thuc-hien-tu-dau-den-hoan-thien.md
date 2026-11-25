@@ -121,9 +121,9 @@
 
 - [x] Thêm `sqflite` và `path`.
 - [x] Tạo database SQLite, version và migration cục bộ.
-- [ ] Cache category và món ăn có thời điểm cập nhật.
+- [x] Cache category và các trang món đã xem, có thời điểm cập nhật.
 - [x] Tạo bảng giỏ hàng local cho offline.
-- [ ] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng.
+- [x] Đồng bộ giỏ offline lên API sau khi đăng nhập/có mạng; thao tác có mã chống đồng bộ trùng.
 - [x] Không lưu mật khẩu hoặc token JWT trong SQLite.
 
 ## Giai đoạn 6 — Quản lý đơn hàng (Admin)

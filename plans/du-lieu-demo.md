@@ -11,6 +11,7 @@ Trước khi bảo vệ, kiểm tra trên database đang dùng:
 
 1. Đăng nhập từng tài khoản demo và kiểm tra tài khoản chưa bị khóa hoặc đổi mật khẩu.
 2. Kiểm tra tên món tiếng Việt, hình ảnh, giá và danh mục hiển thị đúng. Có thể chạy `database/demo_food_images.sql` bằng UTF-8 để thêm ảnh minh họa từ Wikimedia Commons cho một số món chưa có ảnh; script không ghi đè ảnh đã có. Ảnh từ URL ngoài cần mạng và chỉ mang tính minh họa.
+   Chạy `sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/demo_food_descriptions_and_images.sql` để bổ sung mô tả và ảnh cho các món còn thiếu. Ảnh lưu trong `src/FoodOrdering.Api/wwwroot/demo-foods`; xem nguồn và giấy phép trong `NGUON-ANH.md` tại thư mục đó.
 3. Tạo thử một đơn Delivery chưa thanh toán và một đơn DineIn/TakeAway bằng ứng dụng khi các luồng đó đã được kiểm thử; kiểm tra trạng thái bàn và thanh toán sau thao tác.
 4. Giữ một bàn `Available` để trình diễn tạo đơn tại quán. Không xóa hoặc đặt lại dữ liệu có sẵn chỉ để chuẩn bị demo.
 

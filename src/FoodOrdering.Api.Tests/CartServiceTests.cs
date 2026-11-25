@@ -2,13 +2,46 @@ using FoodOrdering.Api.Carts;
 using FoodOrdering.Api.Data;
 using FoodOrdering.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace FoodOrdering.Api.Tests;
 
 public sealed class CartServiceTests
 {
+    [Fact]
+    public async Task OfflineOperationCanBeRetriedWithoutDuplicatingItems()
+    {
+        var options = new DbContextOptionsBuilder<FoodOrderingDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
+        await using var db = new FoodOrderingDbContext(options);
+        db.FoodItems.Add(new FoodItem { FoodItemId = 1, CategoryId = 1, Name = "Food", Price = 25000, IsAvailable = true });
+        await db.SaveChangesAsync();
+        var owner = Guid.NewGuid();
+        var operation = Guid.NewGuid();
+        var service = new CartService(db);
+        Assert.True((await service.ApplySyncAsync(owner, operation, 1, "add", 1, CancellationToken.None)).IsSuccess);
+        Assert.True((await service.ApplySyncAsync(owner, operation, 1, "add", 1, CancellationToken.None)).IsSuccess);
+        Assert.Equal(1, (await service.GetAsync(owner, CancellationToken.None)).TotalQuantity);
+        Assert.False((await service.ApplySyncAsync(Guid.NewGuid(), operation, 1, "add", 1, CancellationToken.None)).IsSuccess);
+    }
     private static FoodOrderingDbContext CreateContext() => new(new DbContextOptionsBuilder<FoodOrderingDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    [Fact]
+    public async Task CartRemainsAvailableInNewDatabaseContext()
+    {
+        var options = new DbContextOptionsBuilder<FoodOrderingDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        var owner = Guid.NewGuid();
+        await using (var db = new FoodOrderingDbContext(options))
+        {
+            db.FoodItems.Add(new FoodItem { FoodItemId = 1, CategoryId = 1, Name = "Food", Price = 25000, IsAvailable = true });
+            await db.SaveChangesAsync();
+            Assert.True((await new CartService(db).AddAsync(owner, 1, 2, CancellationToken.None)).IsSuccess);
+        }
+        await using var reopened = new FoodOrderingDbContext(options);
+        var cart = await new CartService(reopened).GetAsync(owner, CancellationToken.None);
+        Assert.Equal(2, cart.TotalQuantity);
+        Assert.Equal(1, Assert.Single(cart.Items).FoodItemId);
+    }
 
     [Fact]
     public async Task AddUpdateRemove_ChangesOnlyAuthenticatedUsersCart()

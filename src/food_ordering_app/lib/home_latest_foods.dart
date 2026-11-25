@@ -59,11 +59,19 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
   });
   Future<void> _add(MemberFoodItem food) async {
     try {
-      await CartApi.add(food.foodItemId);
+      final cart = await CartApi.add(food.foodItemId);
       if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Đã thêm vào giỏ hàng.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              cart.syncIssue != null
+                  ? 'Chưa đồng bộ được giỏ: ${cart.syncIssue}'
+                  : cart.isOffline
+                  ? 'Đã lưu tạm trên máy; sẽ đồng bộ khi có mạng.'
+                  : 'Đã thêm vào giỏ hàng.',
+            ),
+          ),
+        );
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -119,6 +127,13 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
               );
             return Column(
               children: [
+                if (result.isOffline)
+                  const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text(
+                      'Đang xem dữ liệu đã lưu trên máy; thông tin có thể chưa mới.',
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

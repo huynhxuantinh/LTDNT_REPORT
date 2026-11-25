@@ -22,7 +22,18 @@ class _CartPageState extends State<CartPage> {
   @override
   void initState() {
     super.initState();
+    cartSyncRevision.addListener(_refreshAfterSync);
     _loadCart();
+  }
+
+  @override
+  void dispose() {
+    cartSyncRevision.removeListener(_refreshAfterSync);
+    super.dispose();
+  }
+
+  void _refreshAfterSync() {
+    if (mounted && !loading) _loadCart();
   }
 
   Future<void> _loadCart() async {
@@ -103,6 +114,73 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  Future<void> _discardPending() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bỏ thay đổi chưa đồng bộ?'),
+        content: const Text(
+          'Các thay đổi giỏ hàng chưa đồng bộ trên máy sẽ bị bỏ. Giỏ trên máy chủ được giữ lại.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Quay lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Bỏ thay đổi'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => loading = true);
+    try {
+      final result = await CartApi.discardPendingChanges();
+      if (mounted)
+        setState(() {
+          cart = result;
+          loading = false;
+        });
+    } catch (_) {
+      if (mounted) {
+        setState(() => loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Không thể tải giỏ từ máy chủ. Hãy kiểm tra mạng và thử lại.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _offlineBanner() => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          cart?.syncIssue == null
+              ? 'Giỏ đang lưu trên máy. Kết nối để đồng bộ và đặt hàng.'
+              : 'Không thể đồng bộ: ${cart!.syncIssue}',
+        ),
+        Wrap(
+          children: [
+            TextButton(onPressed: _loadCart, child: const Text('Thử đồng bộ')),
+            if (cart?.syncIssue != null)
+              TextButton(
+                onPressed: _discardPending,
+                child: const Text('Bỏ thay đổi chưa đồng bộ'),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,9 +202,22 @@ class _CartPageState extends State<CartPage> {
               ),
             )
           : (cart == null || cart!.items.isEmpty)
-          ? const Center(child: Text('Giỏ hàng đang trống.'))
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    cart?.isOffline == true
+                        ? 'Giỏ hàng lưu trên máy đang trống. Hãy kết nối mạng để đồng bộ.'
+                        : 'Giỏ hàng đang trống.',
+                  ),
+                  if (cart?.isOffline == true) _offlineBanner(),
+                ],
+              ),
+            )
           : Column(
               children: [
+                if (cart!.isOffline) _offlineBanner(),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _loadCart,
@@ -224,17 +315,19 @@ class _CartPageState extends State<CartPage> {
                           ],
                         ),
                         FilledButton(
-                          onPressed: () async {
-                            final placed = await Navigator.push<bool>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CheckoutPage(),
-                              ),
-                            );
-                            if (placed == true && mounted) {
-                              Navigator.pop(context, true);
-                            }
-                          },
+                          onPressed: cart!.isOffline
+                              ? null
+                              : () async {
+                                  final placed = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CheckoutPage(),
+                                    ),
+                                  );
+                                  if (placed == true && mounted) {
+                                    Navigator.pop(context, true);
+                                  }
+                                },
                           child: const Text('Thanh toán'),
                         ),
                       ],

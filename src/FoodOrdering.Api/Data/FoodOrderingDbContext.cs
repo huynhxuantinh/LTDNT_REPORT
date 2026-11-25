@@ -16,6 +16,7 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
     public DbSet<FoodItem> FoodItems => Set<FoodItem>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<CartSyncOperation> CartSyncOperations => Set<CartSyncOperation>();
     public DbSet<DiningTable> DiningTables => Set<DiningTable>();
     public DbSet<OrderStatus> OrderStatuses => Set<OrderStatus>();
     public DbSet<FoodOrder> Orders => Set<FoodOrder>();
@@ -25,6 +26,12 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CartSyncOperation>(entity =>
+        {
+            entity.ToTable("CartSyncOperations");
+            entity.HasKey(x => x.OperationId);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<PendingRegistration>(entity =>
         {
             entity.ToTable("PendingRegistrations");

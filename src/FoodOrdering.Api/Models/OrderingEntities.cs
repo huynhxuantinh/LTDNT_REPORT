@@ -50,6 +50,13 @@ public sealed class CartItem
     public DateTime? UpdatedAt { get; set; }
 }
 
+public sealed class CartSyncOperation
+{
+    public Guid OperationId { get; set; }
+    public Guid UserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public sealed class DiningTable
 {
     public int TableId { get; set; }

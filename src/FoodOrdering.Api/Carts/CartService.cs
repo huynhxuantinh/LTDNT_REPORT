@@ -1,6 +1,7 @@
 using FoodOrdering.Api.Data;
 using FoodOrdering.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace FoodOrdering.Api.Carts;
 
@@ -14,6 +15,28 @@ public sealed record CartResult<T>(bool IsSuccess, T? Value, string? ErrorCode, 
 
 public sealed class CartService(FoodOrderingDbContext db)
 {
+    public async Task<CartResult<CartDto>> ApplySyncAsync(Guid userId, Guid operationId, int foodId, string action, int quantity, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        var previous = await db.CartSyncOperations.SingleOrDefaultAsync(x => x.OperationId == operationId, ct);
+        if (previous is not null)
+            return previous.UserId == userId ? CartResult<CartDto>.Success(await GetAsync(userId, ct)) : CartResult<CartDto>.Failure("invalid_operation", "Thao tác không hợp lệ.");
+
+        CartResult<CartDto>? result = null;
+        var item = await db.CartItems.Include(x => x.Cart).SingleOrDefaultAsync(x => x.Cart!.UserId == userId && x.FoodItemId == foodId, ct);
+        if (action == "add" && item is not null && item.Quantity + quantity > 99)
+            return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món tối đa 99 phần.");
+        if (action == "add") result = await AddAsync(userId, foodId, quantity, ct);
+        else if (action == "set" && item is not null) result = await SetQuantityAsync(userId, item.CartItemId, quantity, ct);
+        else if (action == "set") result = await AddAsync(userId, foodId, quantity, ct);
+        else if (action == "remove" && item is not null) result = await RemoveAsync(userId, item.CartItemId, ct);
+        else if (action != "remove") return CartResult<CartDto>.Failure("invalid_operation", "Thao tác không hợp lệ.");
+        if (result is { IsSuccess: false }) return result;
+        db.CartSyncOperations.Add(new CartSyncOperation { OperationId = operationId, UserId = userId, CreatedAt = DateTime.UtcNow });
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return CartResult<CartDto>.Success(await GetAsync(userId, ct));
+    }
     public async Task<CartResult<long>> CheckoutAsync(Guid userId, string name, string phone, string address, string? note, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);

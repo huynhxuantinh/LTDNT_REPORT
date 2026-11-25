@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/admin_categories_page.dart';
 import 'package:trek_bikes_app/admin_food_items_page.dart';
@@ -6,7 +8,7 @@ import 'package:trek_bikes_app/home_categories.dart';
 import 'package:trek_bikes_app/home_latest_foods.dart';
 import 'package:trek_bikes_app/member_category_api.dart';
 import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_page.dart';
+import 'package:trek_bikes_app/cart_icon_button.dart';
 import 'package:trek_bikes_app/orders_page.dart';
 import 'package:trek_bikes_app/admin_orders_page.dart';
 import 'package:trek_bikes_app/admin_users_page.dart';
@@ -458,20 +460,59 @@ class _RegisterPageState extends State<RegisterPage> {
 
 class AccountHome extends StatefulWidget {
   final VoidCallback onSessionChanged;
-  const AccountHome({super.key, required this.onSessionChanged});
+  final Future<Cart> Function()? loadCart;
+  const AccountHome({super.key, required this.onSessionChanged, this.loadCart});
   @override
   State<AccountHome> createState() => _AccountHomeState();
 }
 
-class _AccountHomeState extends State<AccountHome> {
+class _AccountHomeState extends State<AccountHome> with WidgetsBindingObserver {
   bool _loading = false;
   String? _role;
   MemberCategory? _selectedCategory;
+  Timer? _syncTimer;
+  bool _foreground = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadRole();
+    _loadCartCount();
+    _syncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (_foreground) _syncCart();
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    if (_foreground) _syncCart();
+  }
+
+  Future<void> _syncCart() async {
+    try {
+      await CartApi.syncOfflineCart();
+    } catch (_) {
+      /* Keep pending changes for the next retry. */
+    }
+  }
+
+  Future<void> _loadCartCount() async {
+    try {
+      final cart =
+          await (widget.loadCart ?? () => CartApi.get(updateCount: false))();
+      if (mounted) cartCount.value = cart.totalQuantity;
+    } catch (_) {
+      // The cart page offers a retry if the server is unavailable.
+    }
   }
 
   Future<void> _loadRole() async {
@@ -534,6 +575,7 @@ class _AccountHomeState extends State<AccountHome> {
       _message('Không thể kết nối máy chủ. Đã đăng xuất trên thiết bị.');
     } finally {
       await SessionHelper.clear();
+      cartCount.value = 0;
       if (mounted) {
         setState(() => _loading = false);
         widget.onSessionChanged();
@@ -553,31 +595,7 @@ class _AccountHomeState extends State<AccountHome> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Thực đơn'),
-      actions: [
-        ValueListenableBuilder<int>(
-          valueListenable: cartCount,
-          builder: (_, count, __) => Stack(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CartPage()),
-                ),
-                icon: const Icon(Icons.shopping_cart),
-              ),
-              if (count > 0)
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: CircleAvatar(
-                    radius: 9,
-                    child: Text('$count', style: const TextStyle(fontSize: 11)),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+      actions: [const CartIconButton()],
     ),
     drawer: Drawer(
       child: SafeArea(
