@@ -9,6 +9,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: StaffPaymentPage(
+          orderId: 1,
           orderCode: 'OFF-123',
           orderType: 'DineIn',
           orderStatus: 'Pending',
@@ -20,7 +21,7 @@ void main() {
     expect(find.text('OFF-123'), findsOneWidget);
     expect(find.text('Ăn tại quán'), findsOneWidget);
     expect(find.text('Chưa thanh toán'), findsOneWidget);
-    expect(find.text('55000 đ'), findsOneWidget);
-    expect(find.text('Quay lại đơn hàng'), findsOneWidget);
+    expect(find.text('55.000 đ'), findsOneWidget);
+    expect(find.text('Quay lại danh sách đơn'), findsOneWidget);
   });
 }

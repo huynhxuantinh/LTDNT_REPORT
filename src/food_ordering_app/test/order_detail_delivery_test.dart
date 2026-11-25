@@ -16,6 +16,6 @@ void main() {
     expect(find.text('Hà Nội'), findsOneWidget);
     expect(find.text('Gọi trước'), findsOneWidget);
     expect(find.text('Giao hàng'), findsOneWidget);
-    expect(find.text('60000 đ'), findsOneWidget);
+    expect(find.text('60.000 đ'), findsOneWidget);
   });
 }
