@@ -3,6 +3,7 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/food_detail_page.dart';
 import 'package:trek_bikes_app/food_image.dart';
+import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 
 class HomeLatestFoods extends StatefulWidget {
@@ -47,6 +48,7 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
       search: _search.text,
     );
   }
+
   void _applySearch() => setState(() {
     _page = 1;
     _reload();
@@ -144,7 +146,7 @@ class _HomeLatestFoodsState extends State<HomeLatestFoods> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            '${food.categoryName}\n${food.price.toStringAsFixed(0)} đ',
+                            '${food.categoryName}\n${formatVnd(food.price)} đ',
                           ),
                           isThreeLine: true,
                           trailing: IconButton.filledTonal(

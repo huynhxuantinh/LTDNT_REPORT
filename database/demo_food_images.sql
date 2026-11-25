@@ -1,15 +1,35 @@
-/* Ảnh minh họa từ Wikimedia Commons. Chỉ bổ sung cho món seed chưa có ảnh;
-   không ghi đè ảnh người dùng đã upload. Dùng UTF-8 khi chạy file này. */
+/* Map every seeded menu item to a locally hosted image under API wwwroot. */
 USE FoodOrderingDb;
+GO
 
-UPDATE dbo.FoodItems SET ImageUrl = CASE Name
-    WHEN N'Bún bò Huế' THEN N'https://upload.wikimedia.org/wikipedia/commons/e/ee/B%C3%BAn_b%C3%B2_Hu%E1%BA%BF_minh28397.jpg'
-    WHEN N'Khoai tây chiên' THEN N'https://upload.wikimedia.org/wikipedia/commons/1/19/Cajun_fries_from_Popeyes_Louisiana_Kitchen%2C_Stratford%2C_Ontario%2C_2025-08-04.jpg'
-    WHEN N'Bánh flan' THEN N'https://upload.wikimedia.org/wikipedia/commons/4/43/Homemade_Flan.jpg'
-    WHEN N'Phở bò tái' THEN N'https://upload.wikimedia.org/wikipedia/commons/3/3d/Ph%E1%BB%9F_b%C3%B2_in_a_German_restaurant_02.jpg'
-    WHEN N'Cơm sườn nướng' THEN N'https://upload.wikimedia.org/wikipedia/commons/3/3c/C%C6%A1m_s%C6%B0%E1%BB%9Dn_n%C6%B0%E1%BB%9Bng.jpg'
-    WHEN N'Gà viên chiên' THEN N'https://upload.wikimedia.org/wikipedia/commons/6/65/Chicken_nuggets_on_a_plate.jpg'
-    WHEN N'Nem chua rán' THEN N'https://upload.wikimedia.org/wikipedia/commons/2/26/Nem-chua-ran2.jpg'
-    ELSE ImageUrl END
-WHERE (ImageUrl IS NULL OR ImageUrl = N'')
-  AND Name IN (N'Bún bò Huế', N'Khoai tây chiên', N'Bánh flan', N'Phở bò tái', N'Cơm sườn nướng', N'Gà viên chiên', N'Nem chua rán');
+UPDATE dbo.FoodItems
+SET ImageUrl = CASE Name
+    WHEN N'Cơm gà xối mỡ' THEN N'/demo-foods/com-ga-xoi-mo.jpg'
+    WHEN N'Bún bò Huế' THEN N'/demo-foods/bun-bo-hue.jpg'
+    WHEN N'Khoai tây chiên' THEN N'/demo-foods/khoai-tay-chien.jpg'
+    WHEN N'Trà đào cam sả' THEN N'/demo-foods/tra-dao.jpg'
+    WHEN N'Bánh flan' THEN N'/demo-foods/banh-flan.jpg'
+    WHEN N'Phở bò tái' THEN N'/demo-foods/pho-bo-tai.jpg'
+    WHEN N'Cơm sườn nướng' THEN N'/demo-foods/com-suon-nuong.jpg'
+    WHEN N'Mì xào bò' THEN N'/demo-foods/mi-xao.jpg'
+    WHEN N'Gà viên chiên' THEN N'/demo-foods/ga-vien-chien.jpg'
+    WHEN N'Nem chua rán' THEN N'/demo-foods/nem-chua-ran.jpg'
+    WHEN N'Trà sữa trân châu' THEN N'/demo-foods/tra-sua.jpg'
+    WHEN N'Cà phê sữa đá' THEN N'/demo-foods/ca-phe-sua-da.jpg'
+    WHEN N'Nước cam' THEN N'/demo-foods/nuoc-cam.jpg'
+    WHEN N'Chè khúc bạch' THEN N'/demo-foods/che-khuc-bach.jpg'
+    WHEN N'Bánh tiramisu' THEN N'/demo-foods/tiramisu.jpg'
+    ELSE ImageUrl
+END
+WHERE Name IN (
+    N'Cơm gà xối mỡ', N'Bún bò Huế', N'Khoai tây chiên', N'Trà đào cam sả', N'Bánh flan',
+    N'Phở bò tái', N'Cơm sườn nướng', N'Mì xào bò', N'Gà viên chiên', N'Nem chua rán',
+    N'Trà sữa trân châu', N'Cà phê sữa đá', N'Nước cam', N'Chè khúc bạch', N'Bánh tiramisu'
+);
+GO
+
+SELECT Name, ImageUrl
+FROM dbo.FoodItems
+WHERE ImageUrl LIKE N'/demo-foods/%'
+ORDER BY Name;
+GO

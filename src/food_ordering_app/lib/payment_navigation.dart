@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 
-void returnHomeAfterPayment(BuildContext context, {bool demo = false}) {
+void returnHomeAfterPayment(
+  BuildContext context, {
+  bool demo = false,
+  bool popToRoot = true,
+}) {
   final messenger = ScaffoldMessenger.of(context);
-  Navigator.of(context).popUntil((route) => route.isFirst);
+  if (popToRoot) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  } else {
+    Navigator.of(context).pop(true);
+  }
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(

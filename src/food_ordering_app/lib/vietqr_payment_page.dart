@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:trek_bikes_app/vietqr_api.dart';
 import 'package:trek_bikes_app/payment_navigation.dart';
+import 'package:trek_bikes_app/money_format.dart';
 
 class VietQrPaymentPage extends StatefulWidget {
   final int orderId;
   final Future<VietQrInfo> Function(int)? loadInfo;
   final Future<String> Function(int)? checkStatus;
   final Future<bool> Function(int)? confirmDemo;
+  final bool popToRootOnSuccess;
   const VietQrPaymentPage({
     super.key,
     required this.orderId,
     this.loadInfo,
     this.checkStatus,
     this.confirmDemo,
+    this.popToRootOnSuccess = true,
   });
 
   @override
@@ -44,7 +47,7 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
       );
       if (mounted) {
         if (res.paymentStatus == 'Paid') {
-          returnHomeAfterPayment(context);
+          returnHomeAfterPayment(context, popToRoot: widget.popToRootOnSuccess);
           return;
         }
         setState(() {
@@ -70,7 +73,7 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
       );
       if (mounted) {
         if (status == 'Paid') {
-          returnHomeAfterPayment(context);
+          returnHomeAfterPayment(context, popToRoot: widget.popToRootOnSuccess);
           return;
         }
         setState(() => paymentStatus = status);
@@ -102,7 +105,11 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
       );
       if (mounted) {
         if (ok) {
-          returnHomeAfterPayment(context, demo: true);
+          returnHomeAfterPayment(
+            context,
+            demo: true,
+            popToRoot: widget.popToRootOnSuccess,
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Không thể xác nhận thanh toán.')),
@@ -236,7 +243,7 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
                       child: Column(
                         children: [
                           Text(
-                            '${info!.amount.toStringAsFixed(0)} đ',
+                            '${formatVnd(info!.amount)} đ',
                             style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -318,7 +325,7 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
                           _buildInfoRow('Chủ tài khoản', info!.accountName),
                           _buildInfoRow(
                             'Số tiền',
-                            '${info!.amount.toStringAsFixed(0)} đ',
+                            '${formatVnd(info!.amount)} đ',
                             copyable: true,
                           ),
                           _buildInfoRow(
@@ -364,7 +371,10 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
                     ),
                   ] else ...[
                     FilledButton(
-                      onPressed: () => returnHomeAfterPayment(context),
+                      onPressed: () => returnHomeAfterPayment(
+                        context,
+                        popToRoot: widget.popToRootOnSuccess,
+                      ),
                       child: const Text('Hoàn tất'),
                     ),
                   ],

@@ -3,6 +3,7 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 import 'package:trek_bikes_app/food_image.dart';
+import 'package:trek_bikes_app/money_format.dart';
 
 class FoodDetailPage extends StatefulWidget {
   const FoodDetailPage({super.key, required this.foodId});
@@ -68,7 +69,7 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
               Text(x.categoryName),
               const SizedBox(height: 12),
               Text(
-                '${x.price.toStringAsFixed(0)} đ',
+                '${formatVnd(x.price)} đ',
                 style: Theme.of(c).textTheme.titleLarge?.copyWith(
                   color: Theme.of(c).colorScheme.primary,
                   fontWeight: FontWeight.bold,

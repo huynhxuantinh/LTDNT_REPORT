@@ -3,6 +3,7 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/category_api.dart';
 import 'package:trek_bikes_app/food_item_api.dart';
 import 'package:trek_bikes_app/food_image.dart';
+import 'package:trek_bikes_app/money_format.dart';
 
 class AdminFoodItemsPage extends StatefulWidget {
   const AdminFoodItemsPage({super.key});
@@ -190,9 +191,7 @@ class _FoodItemTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       leading: FoodImage(imageUrl: item.imageUrl),
       title: Text(item.name),
-      subtitle: Text(
-        '${item.categoryName} · ${item.price.toStringAsFixed(0)} đ',
-      ),
+      subtitle: Text('${item.categoryName} · ${formatVnd(item.price)} đ'),
       trailing: Text(
         item.isAvailable ? 'Đang bán' : 'Đã ẩn',
         style: TextStyle(

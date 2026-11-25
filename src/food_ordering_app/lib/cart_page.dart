@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/cart_api.dart';
+import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/checkout_page.dart';
 
 class CartPage extends StatefulWidget {
@@ -139,9 +140,7 @@ class _CartPageState extends State<CartPage> {
                             item.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text(
-                            '${item.unitPrice.toStringAsFixed(0)} đ',
-                          ),
+                          subtitle: Text('${formatVnd(item.unitPrice)} đ'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -215,7 +214,7 @@ class _CartPageState extends State<CartPage> {
                           children: [
                             const Text('Tổng tiền:'),
                             Text(
-                              '${cart!.totalAmount.toStringAsFixed(0)} đ',
+                              '${formatVnd(cart!.totalAmount)} đ',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

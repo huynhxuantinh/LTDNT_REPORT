@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FoodOrdering.Api.Common;
 using FoodOrdering.Api.Data;
 using FoodOrdering.Api.Models;
@@ -19,6 +20,11 @@ public sealed class PaymentsController(
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     private bool IsStaffOrAdmin => User.IsInRole("Admin") || User.IsInRole("Staff");
+
+    private static IActionResult VnPayIpnResponse(string rspCode, string message) =>
+        new JsonResult(
+            new { RspCode = rspCode, Message = message },
+            new JsonSerializerOptions { PropertyNamingPolicy = null });
 
     // ==========================================
     // 1. THANH TOÁN TIỀN MẶT (CASH / COD)
@@ -229,6 +235,100 @@ public sealed class PaymentsController(
             order.PaymentStatus);
 
         return Ok(dto);
+    }
+
+    /// <summary>
+    /// Endpoint server-to-server nhận kết quả giao dịch từ VNPay (IPN).
+    /// </summary>
+    [HttpGet("vnpay-ipn"), AllowAnonymous]
+    public async Task<IActionResult> VnPayIpn(CancellationToken ct)
+    {
+        var queryParams = HttpContext.Request.Query
+            .Where(x => x.Key.StartsWith("vnp_", StringComparison.Ordinal))
+            .ToDictionary(x => x.Key, x => x.Value.ToString(), StringComparer.Ordinal);
+
+        if (!VnPayHelper.ValidateSignature(queryParams, vnPayOptions.HashSecret))
+        {
+            return VnPayIpnResponse("97", "Invalid signature");
+        }
+
+        if (!queryParams.TryGetValue("vnp_TmnCode", out var tmnCode)
+            || !string.Equals(tmnCode, vnPayOptions.TmnCode, StringComparison.Ordinal))
+        {
+            return VnPayIpnResponse("97", "Invalid merchant");
+        }
+
+        if (!queryParams.TryGetValue("vnp_TxnRef", out var txnRef)
+            || !long.TryParse(txnRef, out var orderId))
+        {
+            return VnPayIpnResponse("01", "Order not found");
+        }
+
+        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (order is null)
+        {
+            return VnPayIpnResponse("01", "Order not found");
+        }
+
+        if (!queryParams.TryGetValue("vnp_Amount", out var amountText)
+            || !long.TryParse(amountText, out var amount)
+            || amount != (long)Math.Round(order.TotalAmount * 100, MidpointRounding.AwayFromZero))
+        {
+            return VnPayIpnResponse("04", "Invalid amount");
+        }
+
+        if (order.PaymentStatus == "Paid")
+        {
+            return VnPayIpnResponse("02", "Order already confirmed");
+        }
+
+        if (!queryParams.TryGetValue("vnp_ResponseCode", out var responseCode)
+            || !queryParams.TryGetValue("vnp_TransactionStatus", out var transactionStatus))
+        {
+            return VnPayIpnResponse("99", "Missing transaction status");
+        }
+
+        var now = DateTime.UtcNow;
+        var transactionNo = queryParams.GetValueOrDefault("vnp_TransactionNo");
+        var payment = await db.Payments.FirstOrDefaultAsync(
+            x => x.OrderId == orderId && x.Method == "VNPay", ct);
+        var isSuccess = responseCode == "00" && transactionStatus == "00";
+
+        if (payment is null)
+        {
+            payment = new Payment
+            {
+                OrderId = orderId,
+                Method = "VNPay",
+                Status = "Pending",
+                Amount = order.TotalAmount,
+                CreatedAt = now
+            };
+            db.Payments.Add(payment);
+        }
+
+        payment.Status = isSuccess ? "Paid" : "Failed";
+        payment.ProviderTxnCode = transactionNo;
+        payment.PaidAt = isSuccess ? now : null;
+
+        if (isSuccess)
+        {
+            order.PaymentStatus = "Paid";
+            order.UpdatedAt = now;
+
+            if (order.OrderType == "DineIn" && order.TableId is int tableId)
+            {
+                var table = await db.DiningTables.FindAsync([tableId], ct);
+                if (table is not null)
+                {
+                    table.Status = "Available";
+                    table.UpdatedAt = now;
+                }
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return VnPayIpnResponse("00", "Confirm Success");
     }
 
     /// <summary>

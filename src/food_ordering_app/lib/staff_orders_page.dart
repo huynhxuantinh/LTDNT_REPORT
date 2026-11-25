@@ -6,6 +6,7 @@ import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/staff_payment_page.dart';
+import 'package:trek_bikes_app/money_format.dart';
 
 class StaffOrdersPage extends StatefulWidget {
   const StaffOrdersPage({super.key});
@@ -36,24 +37,18 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
     return jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
   }
 
-  Future<void> action(int id, {String? status}) async {
+  Future<void> action(int id, {required String status}) async {
     setState(() => busy = true);
     try {
       final token = await SessionHelper.accessToken;
-      final headers = {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      };
-      final response = status == null
-          ? await http.post(
-              Uri.parse('${ApiConfig.baseUrl}/api/orders/$id/collect-cash'),
-              headers: headers,
-            )
-          : await http.put(
-              Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/$id/status'),
-              headers: headers,
-              body: jsonEncode({'status': status}),
-            );
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/$id/status'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'status': status}),
+      );
       if (response.statusCode != 200) throw Exception('Cập nhật thất bại');
       if (mounted) setState(reload);
     } catch (_) {
@@ -103,24 +98,45 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                     Text(
                       '${order['orderType']} · $status · ${order['paymentStatus']}',
                     ),
+                    Text(
+                      'Tổng cộng: ${formatVnd(order['totalAmount'] as num)} đ',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     Wrap(
                       spacing: 8,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StaffPaymentPage(
-                                orderCode: order['orderCode'] as String,
-                                orderType: order['orderType'] as String,
-                                orderStatus: status,
-                                paymentStatus: order['paymentStatus'] as String,
-                                totalAmount: order['totalAmount'] as num,
-                              ),
-                            ),
-                          ),
+                          onPressed:
+                              status == 'Cancelled' &&
+                                  order['paymentStatus'] != 'Paid'
+                              ? null
+                              : () async {
+                                  final paid = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => StaffPaymentPage(
+                                        orderId: id,
+                                        orderCode: order['orderCode'] as String,
+                                        orderType: order['orderType'] as String,
+                                        orderStatus: status,
+                                        paymentStatus:
+                                            order['paymentStatus'] as String,
+                                        totalAmount:
+                                            order['totalAmount'] as num,
+                                      ),
+                                    ),
+                                  );
+                                  if (paid == true && mounted) setState(reload);
+                                },
                           icon: const Icon(Icons.receipt_long_outlined),
-                          label: const Text('Xem thanh toán'),
+                          label: Text(
+                            status == 'Cancelled' &&
+                                    order['paymentStatus'] != 'Paid'
+                                ? 'Đơn đã hủy'
+                                : order['paymentStatus'] == 'Paid'
+                                ? 'Xem thanh toán'
+                                : 'Thanh toán',
+                          ),
                         ),
                         if (next != null)
                           OutlinedButton(
@@ -135,12 +151,6 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                                 ? null
                                 : () => action(id, status: 'Cancelled'),
                             child: const Text('Hủy đơn'),
-                          ),
-                        if (order['paymentStatus'] == 'Unpaid' &&
-                            status != 'Cancelled')
-                          FilledButton(
-                            onPressed: busy ? null : () => action(id),
-                            child: const Text('Thu tiền'),
                           ),
                       ],
                     ),

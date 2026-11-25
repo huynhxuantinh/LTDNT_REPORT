@@ -52,6 +52,15 @@ Tính năng email cần cấu hình SMTP local (`Smtp:Host`, `Port`, `User`, `Pa
 
 Email chứa nút xác thực hoặc đặt lại mật khẩu. Cấu hình `EmailLinks:BaseUrl` trong `appsettings.Development.json` thành địa chỉ API mà trình duyệt mở email truy cập được: `http://localhost:5000` nếu mở trên máy API, hoặc địa chỉ LAN của máy API nếu mở trên điện thoại cùng mạng (chạy API với `--urls http://0.0.0.0:5000`). Với môi trường thật cần URL HTTPS. Mã trong email cũng có thể nhập trực tiếp trong ứng dụng.
 
+## Cấu hình VNPay Sandbox
+
+1. Sửa `src/FoodOrdering.Api/appsettings.json`, mục `VNPay`: thay `TmnCode` và `HashSecret` bằng thông tin VNPay cấp; giữ `BaseUrl` là `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`.
+2. Trên VNPay Sandbox Merchant Admin: https://sandbox.vnpayment.vn/merchantv2/ — điền **IPN URL** là `https://spectacle-surname-emphases.ngrok-free.dev/api/orders/vnpay-ipn`.
+3. Chạy API ở cổng 5000, rồi mở PowerShell khác chạy: `ngrok http 5000`.
+4. Nếu ngrok hiện domain khác, thay domain đó trong IPN URL ở VNPay và trong `ReturnUrl` tại mục `VNPay` của `appsettings.json`; đường dẫn Return URL là `/api/orders/vnpay-return`. Khởi động lại API sau khi sửa.
+
+Không đưa `HashSecret` lên GitHub.
+
 ## Cấu hình và chạy Flutter
 
 Từ thư mục gốc repository:
