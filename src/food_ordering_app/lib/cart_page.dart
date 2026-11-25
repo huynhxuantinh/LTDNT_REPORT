@@ -338,6 +338,8 @@ class _CartPageState extends State<CartPage> {
                                   );
                                   if (placed == true && mounted) {
                                     Navigator.pop(context, true);
+                                  } else if (mounted) {
+                                    await _loadCart();
                                   }
                                 },
                           child: const Text('Thanh toán'),

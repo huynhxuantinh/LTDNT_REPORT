@@ -144,4 +144,14 @@ public sealed class AdminFoodItemsController(AdminFoodItemService foodItemServic
             ? NotFound(ApiErrorResponse.Create(result.ErrorCode, result.Error!))
             : BadRequest(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
     }
+
+    [HttpPost("{foodItemId:int}/restore")]
+    public async Task<ActionResult<FoodItemListItem>> Restore(int foodItemId, CancellationToken cancellationToken)
+    {
+        var result = await foodItemService.RestoreAsync(foodItemId, cancellationToken);
+        if (result.IsSuccess) return Ok(result.Value);
+        return result.ErrorCode == "food_not_found"
+            ? NotFound(ApiErrorResponse.Create(result.ErrorCode, result.Error!))
+            : BadRequest(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
+    }
 }

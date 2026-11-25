@@ -42,7 +42,27 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    SessionHelper.sessionExpired.addListener(_sessionExpired);
     _reload();
+  }
+
+  @override
+  void dispose() {
+    SessionHelper.sessionExpired.removeListener(_sessionExpired);
+    super.dispose();
+  }
+
+  void _sessionExpired() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      setState(_reload);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'),
+        ),
+      );
+    });
   }
 
   void _reload() {

@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
 import 'package:trek_bikes_app/vnpay_payment_page.dart';
+import 'package:trek_bikes_app/auth_api.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, this.checkout, this.vietQrBuilder});
-  final Future<int> Function({required String name, required String phone, required String address, String? note})? checkout;
+  final Future<int> Function({
+    required String name,
+    required String phone,
+    required String address,
+    String? note,
+  })?
+  checkout;
   final Widget Function(int orderId)? vietQrBuilder;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -46,7 +53,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => widget.vietQrBuilder?.call(orderId) ?? VietQrPaymentPage(orderId: orderId),
+            builder: (_) =>
+                widget.vietQrBuilder?.call(orderId) ??
+                VietQrPaymentPage(orderId: orderId),
           ),
         );
       } else if (paymentMethod == 'VNPay') {
@@ -67,6 +76,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // Payment can remove this route before its transition has disposed it.
       if (mounted && ModalRoute.of(context)?.isCurrent == true) {
         Navigator.pop(context, true);
+      }
+    } on ApiException catch (error) {
+      if (mounted && error.code == 'cart_price_changed') {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Giá món đã thay đổi'),
+            content: Text(error.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Xem lại giỏ hàng'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) Navigator.pop(context);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
       }
     } catch (_) {
       if (mounted) {

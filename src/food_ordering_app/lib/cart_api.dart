@@ -365,7 +365,25 @@ class CartApi {
           }),
         )
         .timeout(const Duration(seconds: 8));
-    if (r.statusCode != 200) throw const ApiException('Không thể đặt hàng.');
+    if (r.statusCode != 200) {
+      try {
+        final body = jsonDecode(utf8.decode(r.bodyBytes));
+        if (body is Map && body['error'] is Map) {
+          final error = body['error'] as Map;
+          throw ApiException(
+            error['message'] as String? ?? 'Không thể đặt hàng.',
+            statusCode: r.statusCode,
+            code: error['code'] as String?,
+          );
+        }
+      } on FormatException {
+        // Fall back to a clear message when the response is not JSON.
+      }
+      throw ApiException(
+        'Không thể đặt hàng. Vui lòng thử lại.',
+        statusCode: r.statusCode,
+      );
+    }
     final sameAccount = await _sameAccount(account);
     if (sameAccount) cartCount.value = 0;
     if (available && sameAccount) {

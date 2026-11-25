@@ -78,7 +78,9 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
     if (categories.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng tạo danh mục trước khi thêm món.')),
+          const SnackBar(
+            content: Text('Vui lòng tạo danh mục trước khi thêm món.'),
+          ),
         );
       }
       return;
@@ -88,10 +90,7 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _FoodItemEditorDialog(
-        item: item,
-        categories: categories,
-      ),
+      builder: (_) => _FoodItemEditorDialog(item: item, categories: categories),
     );
 
     if (saved == true && mounted) {
@@ -133,7 +132,7 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
       final shouldHide = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Món đã có trong đơn hàng'),
+          title: const Text('Món đang được sử dụng'),
           content: Text(
             '${e.message}\n\nBạn có muốn ẨN món "${item.name}" khỏi thực đơn khách hàng không?',
           ),
@@ -160,17 +159,15 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
           }
         } on ApiException catch (err) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(err.message)),
-            );
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(err.message)));
           }
         }
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
@@ -178,6 +175,45 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
           const SnackBar(content: Text('Không thể kết nối máy chủ.')),
         );
       }
+    }
+  }
+
+  Future<void> _restoreItem(AdminFoodItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mở bán lại'),
+        content: Text('Mở bán lại món "${item.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Mở bán'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await FoodItemApi.restore(item.foodItemId);
+      if (mounted) {
+        setState(_reloadFoods);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã mở bán lại món ăn.')));
+      }
+    } on ApiException catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể kết nối máy chủ.')),
+        );
     }
   }
 
@@ -271,6 +307,7 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
                     item: item,
                     onEdit: () => _openEditor(item),
                     onDelete: () => _deleteItem(item),
+                    onRestore: () => _restoreItem(item),
                   );
                 },
               );
@@ -323,11 +360,13 @@ class _FoodItemTile extends StatelessWidget {
   final AdminFoodItem item;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onRestore;
 
   const _FoodItemTile({
     required this.item,
     required this.onEdit,
     required this.onDelete,
+    required this.onRestore,
   });
 
   @override
@@ -342,6 +381,12 @@ class _FoodItemTile extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (!item.isAvailable)
+            IconButton(
+              tooltip: 'Mở bán lại',
+              onPressed: onRestore,
+              icon: const Icon(Icons.visibility_outlined),
+            ),
           IconButton(
             tooltip: 'Sửa món',
             onPressed: onEdit,
@@ -362,10 +407,7 @@ class _FoodItemEditorDialog extends StatefulWidget {
   final AdminFoodItem? item;
   final List<AdminCategory> categories;
 
-  const _FoodItemEditorDialog({
-    required this.item,
-    required this.categories,
-  });
+  const _FoodItemEditorDialog({required this.item, required this.categories});
 
   @override
   State<_FoodItemEditorDialog> createState() => _FoodItemEditorDialogState();
@@ -389,7 +431,9 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
     _priceController = TextEditingController(
       text: widget.item != null ? widget.item!.price.toStringAsFixed(0) : '',
     );
-    _descController = TextEditingController(text: widget.item?.description ?? '');
+    _descController = TextEditingController(
+      text: widget.item?.description ?? '',
+    );
     _categoryId = widget.item?.categoryId ?? widget.categories.first.categoryId;
   }
 
@@ -456,7 +500,8 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Không thể lưu món ăn. Thử lại sau.');
+      if (mounted)
+        setState(() => _error = 'Không thể lưu món ăn. Thử lại sau.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -493,8 +538,9 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Tên món *'),
-                validator: (v) =>
-                    v == null || v.trim().length < 2 ? 'Tối thiểu 2 ký tự' : null,
+                validator: (v) => v == null || v.trim().length < 2
+                    ? 'Tối thiểu 2 ký tự'
+                    : null,
               ),
               const SizedBox(height: 10),
               TextFormField(
@@ -524,7 +570,10 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
               ],
             ],
           ),

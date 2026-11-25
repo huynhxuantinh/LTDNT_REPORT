@@ -41,8 +41,11 @@ public sealed class AdminOrdersController(FoodOrderingDbContext db) : Controller
     {
         var page=request.ValidPage; var size=request.ValidPageSize; var query=db.Orders.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(search)) { var keyword=search.Trim(); query=query.Where(x=>x.OrderCode.Contains(keyword)||(x.ReceiverName??"").Contains(keyword)||(x.ReceiverPhone??"").Contains(keyword)); }
-        if (fromDate.HasValue) query=query.Where(x=>x.CreatedAt>=fromDate.Value.Date);
-        if (toDate.HasValue) query=query.Where(x=>x.CreatedAt<toDate.Value.Date.AddDays(1));
+        if ((fromDate.HasValue && fromDate.Value.Year == 1) || (toDate.HasValue && toDate.Value.Date == DateTime.MaxValue.Date) || (fromDate.HasValue && toDate.HasValue && fromDate.Value.Date > toDate.Value.Date))
+            return BadRequest(ApiErrorResponse.Create("invalid_date_range", "Khoảng ngày không hợp lệ."));
+        // Dates from the UI represent calendar days in Vietnam (UTC+07:00).
+        if (fromDate.HasValue) { var startUtc = fromDate.Value.Date.AddHours(-7); query=query.Where(x=>x.CreatedAt>=startUtc); }
+        if (toDate.HasValue) { var endUtc = toDate.Value.Date.AddDays(1).AddHours(-7); query=query.Where(x=>x.CreatedAt<endUtc); }
         if (!string.IsNullOrWhiteSpace(status)) query=query.Where(x=>x.OrderStatus!.Name==status);
         if (!string.IsNullOrWhiteSpace(orderType)) query=query.Where(x=>x.OrderType==orderType);
         if (!string.IsNullOrWhiteSpace(paymentStatus)) query=query.Where(x=>x.PaymentStatus==paymentStatus);

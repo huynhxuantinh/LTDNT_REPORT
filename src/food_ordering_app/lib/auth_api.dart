@@ -32,7 +32,9 @@ class AuthSession {
 
 class ApiException implements Exception {
   final String message;
-  const ApiException(this.message);
+  final int? statusCode;
+  final String? code;
+  const ApiException(this.message, {this.statusCode, this.code});
 }
 
 class AuthApi {
@@ -142,11 +144,16 @@ class AuthApi {
   }
 
   static Future<AuthSession> refresh({required String refreshToken}) async {
-    final response = await http.post(
-      _uri('refresh'),
-      headers: _headers(),
-      body: jsonEncode({'refreshToken': refreshToken}),
-    );
+    final response = await http
+        .post(
+          _uri('refresh'),
+          headers: _headers(),
+          body: jsonEncode({'refreshToken': refreshToken}),
+        )
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode == 401) {
+      throw const ApiException('Phiên đăng nhập đã hết hạn.', statusCode: 401);
+    }
     _ensure(response, 200);
     return AuthSession.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -191,9 +198,13 @@ class AuthApi {
         error?['message'] as String? ??
             json['message'] as String? ??
             'Có lỗi xảy ra.',
+        statusCode: response.statusCode,
       );
     } on FormatException {
-      throw const ApiException('Không thể kết nối đến máy chủ.');
+      throw ApiException(
+        'Không thể xử lý phản hồi từ máy chủ.',
+        statusCode: response.statusCode,
+      );
     }
   }
 }

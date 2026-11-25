@@ -176,9 +176,18 @@ public sealed class AdminFoodItemService(FoodOrderingDbContext dbContext)
             return FoodItemActionResult<string?>.Failure("food_has_order_details", "Không thể xóa món đã có trong đơn hàng.");
         }
 
+        if (await dbContext.CartItems.AnyAsync(item => item.FoodItemId == foodItemId, cancellationToken))
+        {
+            return FoodItemActionResult<string?>.Failure("food_in_carts", "Món đang có trong giỏ hàng của khách nên không thể xóa. Bạn có thể ẩn món.");
+        }
+
         var imageUrl = foodItem.ImageUrl;
         dbContext.FoodItems.Remove(foodItem);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try { await dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException error) when (error.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
+        {
+            return FoodItemActionResult<string?>.Failure("food_in_use", "Món đang được sử dụng trong giỏ hoặc đơn hàng nên không thể xóa. Bạn có thể ẩn món.");
+        }
         return FoodItemActionResult<string?>.Success(imageUrl);
     }
 
@@ -189,11 +198,6 @@ public sealed class AdminFoodItemService(FoodOrderingDbContext dbContext)
         if (foodItem is null)
         {
             return FoodItemActionResult<FoodItemListItem>.Failure("food_not_found", "Không tìm thấy món ăn.");
-        }
-
-        if (!await dbContext.OrderDetails.AnyAsync(item => item.FoodItemId == foodItemId, cancellationToken))
-        {
-            return FoodItemActionResult<FoodItemListItem>.Failure("food_has_no_order_details", "Chỉ có thể ẩn món đã xuất hiện trong đơn hàng.");
         }
 
         foodItem.IsAvailable = false;
@@ -209,5 +213,20 @@ public sealed class AdminFoodItemService(FoodOrderingDbContext dbContext)
             foodItem.ImageUrl,
             foodItem.IsAvailable,
             foodItem.CreatedAt));
+    }
+
+    public async Task<FoodItemActionResult<FoodItemListItem>> RestoreAsync(int foodItemId, CancellationToken cancellationToken)
+    {
+        var foodItem = await dbContext.FoodItems.Include(item => item.Category)
+            .SingleOrDefaultAsync(item => item.FoodItemId == foodItemId, cancellationToken);
+        if (foodItem is null) return FoodItemActionResult<FoodItemListItem>.Failure("food_not_found", "Không tìm thấy món ăn.");
+        if (foodItem.Category is null || !foodItem.Category.IsActive)
+            return FoodItemActionResult<FoodItemListItem>.Failure("category_inactive", "Không thể mở bán vì danh mục đang bị ẩn.");
+        foodItem.IsAvailable = true;
+        foodItem.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return FoodItemActionResult<FoodItemListItem>.Success(new FoodItemListItem(
+            foodItem.FoodItemId, foodItem.CategoryId, foodItem.Category.Name, foodItem.Name,
+            foodItem.Description, foodItem.Price, foodItem.ImageUrl, true, foodItem.CreatedAt));
     }
 }

@@ -39,10 +39,19 @@ public sealed class CartService(FoodOrderingDbContext db)
     }
     public async Task<CartResult<long>> CheckoutAsync(Guid userId, string name, string phone, string address, string? note, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var cart = await db.Carts.Include(x => x.CartItems).ThenInclude(x => x.FoodItem).SingleOrDefaultAsync(x => x.UserId == userId, ct);
         if (cart is null || cart.CartItems.Count == 0) return CartResult<long>.Failure("cart_empty", "Giỏ hàng đang trống.");
         if (cart.CartItems.Any(x => x.FoodItem is null || !x.FoodItem.IsAvailable)) return CartResult<long>.Failure("food_not_available", "Có món không còn bán.");
+        var changedPrices = cart.CartItems.Where(x => x.UnitPrice != x.FoodItem!.Price).ToList();
+        if (changedPrices.Count != 0)
+        {
+            foreach (var item in changedPrices) { item.UnitPrice = item.FoodItem!.Price; item.UpdatedAt = DateTime.UtcNow; }
+            cart.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return CartResult<long>.Failure("cart_price_changed", "Giá một số món đã thay đổi. Vui lòng kiểm tra lại giỏ hàng trước khi đặt.");
+        }
         var order = new FoodOrder { OrderCode = $"DLV-{DateTime.UtcNow:yyyyMMddHHmmssfff}", UserId = userId, OrderStatusId = 1, OrderType = "Delivery", ReceiverName = name.Trim(), ReceiverPhone = phone.Trim(), DeliveryAddress = address.Trim(), Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(), TotalAmount = cart.CartItems.Sum(x => x.UnitPrice * x.Quantity), PaymentStatus = "Unpaid", CreatedAt = DateTime.UtcNow };
         foreach (var item in cart.CartItems) order.OrderDetails.Add(new OrderDetail { FoodItemId = item.FoodItemId, FoodNameSnapshot = item.FoodItem!.Name, ImageUrlSnapshot = item.FoodItem.ImageUrl, UnitPrice = item.UnitPrice, Quantity = item.Quantity });
         db.Orders.Add(order); db.CartItems.RemoveRange(cart.CartItems); await db.SaveChangesAsync(ct); await tx.CommitAsync(ct);
@@ -59,9 +68,9 @@ public sealed class CartService(FoodOrderingDbContext db)
                                item.CartItemId,
                                item.FoodItemId,
                                food.Name,
-                               item.UnitPrice,
+                               food.Price,
                                item.Quantity,
-                               item.UnitPrice * item.Quantity))
+                               food.Price * item.Quantity))
             .ToListAsync(ct);
         return new CartDto(items, items.Sum(item => item.Quantity), items.Sum(item => item.LineTotal));
     }

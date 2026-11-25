@@ -98,7 +98,7 @@ class FoodItemApi {
     );
     _ensure(response, 200);
     return AdminFoodPage.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -128,7 +128,7 @@ class FoodItemApi {
     final response = await http.Response.fromStream(streamed);
     _ensure(response, 201);
     return AdminFoodItem.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -161,7 +161,7 @@ class FoodItemApi {
     final response = await http.Response.fromStream(streamed);
     _ensure(response, 200);
     return AdminFoodItem.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -175,11 +175,17 @@ class FoodItemApi {
     if (response.statusCode == 204) return;
     if (response.statusCode == 409) {
       try {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final json =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         final error = json['error'] as Map<String, dynamic>?;
-        if (error?['code'] == 'food_has_order_details') {
+        if ([
+          'food_has_order_details',
+          'food_in_carts',
+          'food_in_use',
+        ].contains(error?['code'])) {
           throw FoodHasOrdersException(
-            error?['message'] as String? ?? 'Không thể xóa món đã có trong đơn hàng.',
+            error?['message'] as String? ??
+                'Không thể xóa món đã có trong đơn hàng.',
           );
         }
       } on FormatException {
@@ -193,6 +199,14 @@ class FoodItemApi {
   static Future<void> hide(int foodItemId) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/hide'),
+      headers: await _headers(),
+    );
+    _ensure(response, 200);
+  }
+
+  static Future<void> restore(int foodItemId) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/restore'),
       headers: await _headers(),
     );
     _ensure(response, 200);
@@ -229,7 +243,8 @@ class FoodItemApi {
   static void _ensure(http.Response response, int expected) {
     if (response.statusCode == expected) return;
     try {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       final error = json['error'] as Map<String, dynamic>?;
       throw ApiException(error?['message'] as String? ?? 'Có lỗi xảy ra.');
     } on FormatException {
