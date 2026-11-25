@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/session_helper.dart';
@@ -51,7 +53,7 @@ class CategoryApi {
   static Future<List<AdminCategory>> getAll() async {
     final response = await http.get(_uri(), headers: await _headers());
     _ensure(response, 200);
-    final data = jsonDecode(response.body) as List<dynamic>;
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
     return data
         .map((item) => AdminCategory.fromJson(item as Map<String, dynamic>))
         .toList();
@@ -68,7 +70,7 @@ class CategoryApi {
     );
     _ensure(response, 201);
     return AdminCategory.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -84,7 +86,7 @@ class CategoryApi {
     );
     _ensure(response, 200);
     return AdminCategory.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -96,10 +98,55 @@ class CategoryApi {
     _ensure(response, 204);
   }
 
+  static Future<String> uploadImage(
+    int categoryId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    final lower = fileName.toLowerCase();
+    final type = lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+        ? MediaType('image', 'jpeg')
+        : lower.endsWith('.png')
+        ? MediaType('image', 'png')
+        : lower.endsWith('.webp')
+        ? MediaType('image', 'webp')
+        : null;
+    if (type == null)
+      throw const ApiException('Chỉ hỗ trợ ảnh JPEG, PNG hoặc WEBP.');
+    if (bytes.isEmpty || bytes.length > 5 * 1024 * 1024)
+      throw const ApiException('Ảnh phải có dung lượng từ 1 byte đến 5 MB.');
+    final headers = await _headers();
+    final request =
+        http.MultipartRequest('POST', Uri.parse('${_uri('$categoryId')}/image'))
+          ..headers['Authorization'] = headers['Authorization']!
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              'image',
+              bytes,
+              filename: fileName,
+              contentType: type,
+            ),
+          );
+    final response = await http.Response.fromStream(await request.send());
+    _ensure(response, 200);
+    return (jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>)['imageUrl']
+        as String;
+  }
+
+  static Future<void> deleteImage(int categoryId) async {
+    final response = await http.delete(
+      Uri.parse('${_uri('$categoryId')}/image'),
+      headers: await _headers(),
+    );
+    _ensure(response, 204);
+  }
+
   static void _ensure(http.Response response, int expected) {
     if (response.statusCode == expected) return;
     try {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       final error = json['error'] as Map<String, dynamic>?;
       throw ApiException(error?['message'] as String? ?? 'Có lỗi xảy ra.');
     } on FormatException {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/food_image.dart';
 import 'package:trek_bikes_app/member_category_api.dart';
 
 class HomeCategories extends StatefulWidget {
@@ -20,7 +21,9 @@ class _HomeCategoriesState extends State<HomeCategories> {
     _reload();
   }
 
-  void _reload() { _categories = MemberCategoryApi.getAll(); }
+  void _reload() {
+    _categories = MemberCategoryApi.getAll();
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<List<MemberCategory>>(
@@ -58,6 +61,9 @@ class _HomeCategoriesState extends State<HomeCategories> {
             (category) => Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
+                avatar: category.imageUrl == null || category.imageUrl!.isEmpty
+                    ? null
+                    : FoodImage(imageUrl: category.imageUrl, size: 24),
                 label: Text(category.name),
                 selected: widget.selectedId == category.categoryId,
                 onSelected: (_) => widget.onSelected(category),

@@ -67,22 +67,23 @@ public sealed class AdminCategoryService(FoodOrderingDbContext dbContext)
         return CategoryActionResult<CategoryItem>.Success(ToItem(category));
     }
 
-    public async Task<CategoryActionResult<bool>> DeleteAsync(int categoryId, CancellationToken cancellationToken)
+    public async Task<CategoryActionResult<string?>> DeleteAsync(int categoryId, CancellationToken cancellationToken)
     {
         var category = await dbContext.Categories.SingleOrDefaultAsync(item => item.CategoryId == categoryId, cancellationToken);
         if (category is null)
         {
-            return CategoryActionResult<bool>.Failure("category_not_found", "Không tìm thấy danh mục.");
+            return CategoryActionResult<string?>.Failure("category_not_found", "Không tìm thấy danh mục.");
         }
 
         if (await dbContext.FoodItems.AnyAsync(item => item.CategoryId == categoryId, cancellationToken))
         {
-            return CategoryActionResult<bool>.Failure("category_has_food_items", "Không thể xóa danh mục còn món ăn.");
+            return CategoryActionResult<string?>.Failure("category_has_food_items", "Không thể xóa danh mục còn món ăn.");
         }
 
+        var imageUrl = category.ImageUrl;
         dbContext.Categories.Remove(category);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return CategoryActionResult<bool>.Success(true);
+        return CategoryActionResult<string?>.Success(imageUrl);
     }
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

@@ -9,12 +9,45 @@ namespace FoodOrdering.Api.Controllers;
 [ApiController]
 [Route("api/admin/categories")]
 [Authorize(Roles = "Admin")]
-public sealed class AdminCategoriesController(AdminCategoryService categoryService, IFoodImageStorage storage) : ControllerBase
+public sealed class AdminCategoriesController(AdminCategoryService categoryService, IFoodImageStorage storage, ILogger<AdminCategoriesController> logger) : ControllerBase
 {
     [HttpPost("{categoryId:int}/image")]
-    public async Task<IActionResult> UploadImage(int categoryId,IFormFile image,CancellationToken ct){var url=await storage.SaveAsync(image,ct);var result=await categoryService.SetImageAsync(categoryId,url,ct);if(!result.IsSuccess){await storage.DeleteAsync(url,ct);return NotFound();}await storage.DeleteAsync(result.Value,ct);return Ok(new{imageUrl=url});}
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(int categoryId, [FromForm] IFormFile image, CancellationToken ct)
+    {
+        string? newUrl = null;
+        var linked = false;
+        try
+        {
+            newUrl = await storage.SaveAsync(image, ct);
+            var result = await categoryService.SetImageAsync(categoryId, newUrl, ct);
+            if (!result.IsSuccess)
+            {
+                await TryDeleteImage(newUrl, ct);
+                return NotFound(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
+            }
+            linked = true;
+            await TryDeleteImage(result.Value, CancellationToken.None);
+            return Ok(new { imageUrl = newUrl });
+        }
+        catch (ImageUploadException error)
+        {
+            return BadRequest(ApiErrorResponse.Create("invalid_image", error.Message));
+        }
+        catch
+        {
+            if (!linked) await TryDeleteImage(newUrl, CancellationToken.None);
+            throw;
+        }
+    }
     [HttpDelete("{categoryId:int}/image")]
-    public async Task<IActionResult> DeleteImage(int categoryId,CancellationToken ct){var result=await categoryService.SetImageAsync(categoryId,null,ct);if(!result.IsSuccess)return NotFound();await storage.DeleteAsync(result.Value,ct);return NoContent();}
+    public async Task<IActionResult> DeleteImage(int categoryId, CancellationToken ct)
+    {
+        var result = await categoryService.SetImageAsync(categoryId, null, ct);
+        if (!result.IsSuccess) return NotFound(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
+        await TryDeleteImage(result.Value, CancellationToken.None);
+        return NoContent();
+    }
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CategoryItem>>> GetAll(CancellationToken cancellationToken) =>
         Ok(await categoryService.GetAllAsync(cancellationToken));
@@ -42,9 +75,22 @@ public sealed class AdminCategoriesController(AdminCategoryService categoryServi
     public async Task<IActionResult> Delete(int categoryId, CancellationToken cancellationToken)
     {
         var result = await categoryService.DeleteAsync(categoryId, cancellationToken);
-        if (result.IsSuccess) return NoContent();
+        if (result.IsSuccess)
+        {
+            await TryDeleteImage(result.Value, CancellationToken.None);
+            return NoContent();
+        }
         return result.ErrorCode == "category_not_found"
             ? NotFound(ApiErrorResponse.Create(result.ErrorCode, result.Error!))
             : Conflict(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
+    }
+
+    private async Task TryDeleteImage(string? url, CancellationToken ct)
+    {
+        try { await storage.DeleteAsync(url, ct); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(error, "Không thể xóa ảnh danh mục cũ.");
+        }
     }
 }

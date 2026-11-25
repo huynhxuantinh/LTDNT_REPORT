@@ -1,10 +1,17 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/auth_api.dart';
 import 'package:trek_bikes_app/category_api.dart';
+import 'package:trek_bikes_app/food_image.dart';
+
+typedef CategoryImage = ({Uint8List bytes, String name});
 
 class AdminCategoriesPage extends StatefulWidget {
-  const AdminCategoriesPage({super.key});
+  const AdminCategoriesPage({super.key, this.pickImage});
+  final Future<CategoryImage?> Function()? pickImage;
 
   @override
   State<AdminCategoriesPage> createState() => _AdminCategoriesPageState();
@@ -19,9 +26,13 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     _reload();
   }
 
-  void _reload() { _categories = CategoryApi.getAll(); }
+  void _reload() {
+    _categories = CategoryApi.getAll();
+  }
 
   Future<void> _edit([AdminCategory? category]) async {
+    var current = category;
+    var changed = false;
     final nameController = TextEditingController(text: category?.name);
     final descriptionController = TextEditingController(
       text: category?.description,
@@ -32,20 +43,42 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
         title: category == null ? 'Thêm danh mục' : 'Sửa danh mục',
         nameController: nameController,
         descriptionController: descriptionController,
-        onSave: () async {
+        imageUrl: category?.imageUrl,
+        pickImage: widget.pickImage,
+        onSave: (image, removeImage) async {
           final name = nameController.text.trim();
           if (name.length < 2)
             throw const ApiException('Tên danh mục phải có ít nhất 2 ký tự.');
-          if (category == null) {
-            await CategoryApi.create(
+          if (current == null) {
+            current = await CategoryApi.create(
               name: name,
               description: descriptionController.text.trim(),
             );
           } else {
-            await CategoryApi.update(
-              categoryId: category.categoryId,
+            current = await CategoryApi.update(
+              categoryId: current!.categoryId,
               name: name,
               description: descriptionController.text.trim(),
+            );
+          }
+          changed = true;
+          try {
+            if (image != null) {
+              await CategoryApi.uploadImage(
+                current!.categoryId,
+                image.bytes,
+                image.name,
+              );
+            } else if (removeImage && current!.imageUrl != null) {
+              await CategoryApi.deleteImage(current!.categoryId);
+            }
+          } on ApiException catch (error) {
+            throw ApiException(
+              'Đã lưu thông tin danh mục nhưng chưa cập nhật ảnh: ${error.message}',
+            );
+          } catch (_) {
+            throw const ApiException(
+              'Đã lưu thông tin danh mục nhưng chưa cập nhật ảnh. Hãy thử lại.',
             );
           }
         },
@@ -53,7 +86,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     );
     nameController.dispose();
     descriptionController.dispose();
-    if (saved == true && mounted) setState(_reload);
+    if ((saved == true || changed) && mounted) setState(_reload);
   }
 
   Future<void> _delete(AdminCategory category) async {
@@ -125,12 +158,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
                     horizontal: 12,
                     vertical: 4,
                   ),
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer,
-                    child: const Icon(Icons.category_outlined),
-                  ),
+                  leading: FoodImage(imageUrl: category.imageUrl),
                   title: Text(category.name),
                   subtitle:
                       category.description == null ||
@@ -165,13 +193,17 @@ class _CategoryEditorDialog extends StatefulWidget {
   final String title;
   final TextEditingController nameController;
   final TextEditingController descriptionController;
-  final Future<void> Function() onSave;
+  final Future<void> Function(CategoryImage? image, bool removeImage) onSave;
+  final String? imageUrl;
+  final Future<CategoryImage?> Function()? pickImage;
 
   const _CategoryEditorDialog({
     required this.title,
     required this.nameController,
     required this.descriptionController,
     required this.onSave,
+    this.imageUrl,
+    this.pickImage,
   });
 
   @override
@@ -180,7 +212,45 @@ class _CategoryEditorDialog extends StatefulWidget {
 
 class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
   bool _saving = false;
+  CategoryImage? _selectedImage;
+  bool _removeImage = false;
   String? _error;
+
+  Future<void> _pickImage() async {
+    try {
+      final CategoryImage? selected;
+      if (widget.pickImage != null) {
+        selected = await widget.pickImage!();
+      } else {
+        final files = await FilePicker.pickFiles(type: FileType.image);
+        if (files.isEmpty) return;
+        final file = files.first;
+        if (await file.xFile.length() > 5 * 1024 * 1024)
+          throw const ApiException('Ảnh không được vượt quá 5 MB.');
+        selected = (bytes: await file.xFile.readAsBytes(), name: file.name);
+      }
+      if (!mounted || selected == null) return;
+      final name = selected.name.toLowerCase();
+      if (!(name.endsWith('.jpg') ||
+          name.endsWith('.jpeg') ||
+          name.endsWith('.png') ||
+          name.endsWith('.webp'))) {
+        throw const ApiException('Chỉ hỗ trợ ảnh JPEG, PNG hoặc WEBP.');
+      }
+      if (selected.bytes.isEmpty || selected.bytes.length > 5 * 1024 * 1024)
+        throw const ApiException('Ảnh phải có dung lượng từ 1 byte đến 5 MB.');
+      setState(() {
+        _selectedImage = selected;
+        _removeImage = false;
+        _error = null;
+      });
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted)
+        setState(() => _error = 'Không thể mở ảnh. Vui lòng chọn lại.');
+    }
+  }
 
   Future<void> _submit() async {
     setState(() {
@@ -188,7 +258,7 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
       _error = null;
     });
     try {
-      await widget.onSave();
+      await widget.onSave(_selectedImage, _removeImage);
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -215,6 +285,62 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
             autofocus: true,
             decoration: const InputDecoration(labelText: 'Tên danh mục'),
           ),
+          const SizedBox(height: 16),
+          if (_selectedImage != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(
+                _selectedImage!.bytes,
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    const Text('Không thể xem trước ảnh.'),
+              ),
+            )
+          else if (!_removeImage &&
+              widget.imageUrl != null &&
+              widget.imageUrl!.isNotEmpty)
+            FoodImage(imageUrl: widget.imageUrl, size: 120)
+          else
+            const Text('Chưa có ảnh danh mục'),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _pickImage,
+                icon: const Icon(Icons.image_outlined),
+                label: Text(
+                  _selectedImage != null ||
+                          (!_removeImage && widget.imageUrl != null)
+                      ? 'Đổi ảnh'
+                      : 'Chọn ảnh',
+                ),
+              ),
+              if (_selectedImage != null ||
+                  (!_removeImage &&
+                      widget.imageUrl != null &&
+                      widget.imageUrl!.isNotEmpty))
+                TextButton.icon(
+                  onPressed: _saving
+                      ? null
+                      : () => setState(() {
+                          _selectedImage = null;
+                          _removeImage = true;
+                        }),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Xóa ảnh'),
+                ),
+            ],
+          ),
+          if (_selectedImage != null)
+            Text(
+              _selectedImage!.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: widget.descriptionController,
