@@ -6,6 +6,7 @@ import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/money_format.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
 
 class AdminOrdersPage extends StatefulWidget {
   const AdminOrdersPage({super.key, this.client, this.tokenReader});
@@ -71,15 +72,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     _ => null,
   };
 
-  String _statusLabel(String status) => switch (status) {
-    'Pending' => 'Chờ xác nhận',
-    'Confirmed' => 'Đã xác nhận',
-    'Preparing' => 'Đang chuẩn bị',
-    'Delivering' => 'Đang giao',
-    'Completed' => 'Hoàn thành',
-    'Cancelled' => 'Đã hủy',
-    _ => status,
-  };
+  String _statusLabel(String status) => orderStatusLabel(status);
 
   Future<void> _updateStatus(Map<String, dynamic> order, String status) async {
     final confirmed = await showDialog<bool>(

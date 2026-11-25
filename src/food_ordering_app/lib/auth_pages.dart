@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
 import 'package:trek_bikes_app/admin_categories_page.dart';
 import 'package:trek_bikes_app/admin_food_items_page.dart';
 import 'package:trek_bikes_app/auth_api.dart';
@@ -617,7 +618,11 @@ class _AccountHomeState extends State<AccountHome> with WidgetsBindingObserver {
                     'Đặt món ăn',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Text(_role == null ? 'Tài khoản' : 'Tài khoản · $_role'),
+                  Text(
+                    _role == null
+                        ? 'Tài khoản'
+                        : 'Tài khoản · ${roleLabel(_role)}',
+                  ),
                 ],
               ),
             ),

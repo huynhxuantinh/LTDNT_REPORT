@@ -137,7 +137,7 @@ class AuthApi {
     );
     _ensure(response, 200);
     return AuthSession.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -149,7 +149,7 @@ class AuthApi {
     );
     _ensure(response, 200);
     return AuthSession.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
     );
   }
 
@@ -184,7 +184,8 @@ class AuthApi {
   static void _ensure(http.Response response, int expected) {
     if (response.statusCode == expected) return;
     try {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       final error = json['error'] as Map<String, dynamic>?;
       throw ApiException(
         error?['message'] as String? ??

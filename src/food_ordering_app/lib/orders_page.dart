@@ -8,6 +8,7 @@ import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
 import 'package:trek_bikes_app/vnpay_payment_page.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
 
 Future<dynamic> _load(String path) async {
   final token = await SessionHelper.accessToken;
@@ -166,7 +167,7 @@ class _OrdersPageState extends State<OrdersPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        '${order['status']} · ${isPaid ? "Đã thanh toán" : "Chưa thanh toán"}\n${formatVnd(order['totalAmount'] as num)} đ${estimate == null ? '' : '\n$estimate'}',
+                        '${orderStatusLabel(order['status'])} · ${paymentStatusLabel(order['paymentStatus'])}\n${formatVnd(order['totalAmount'] as num)} đ${estimate == null ? '' : '\n$estimate'}',
                       ),
                       isThreeLine: true,
                       trailing: const Icon(Icons.chevron_right),
@@ -253,7 +254,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'Trạng thái: ${data['status']}\nThanh toán: ${isPaid ? "Đã thanh toán" : "Chưa thanh toán"}',
+                        'Trạng thái: ${orderStatusLabel(data['status'])}\nThanh toán: ${paymentStatusLabel(data['paymentStatus'])}',
                         style: TextStyle(
                           color: isPaid ? Colors.green : Colors.red,
                           fontWeight: FontWeight.w500,
@@ -274,12 +275,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _detailRow('Ngày đặt', _date(data['createdAt'])),
-                          _detailRow('Loại đơn', switch (data['orderType']) {
-                            'Delivery' => 'Giao hàng',
-                            'DineIn' => 'Ăn tại quán',
-                            'TakeAway' => 'Mang đi',
-                            _ => _value(data['orderType']),
-                          }),
+                          _detailRow(
+                            'Loại đơn',
+                            orderTypeLabel(data['orderType']),
+                          ),
                           if (data['orderType'] == 'Delivery' &&
                               _deliveryEstimate(data) != null)
                             _detailRow(

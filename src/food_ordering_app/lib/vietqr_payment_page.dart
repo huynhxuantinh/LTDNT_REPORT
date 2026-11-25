@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/user_error.dart';
 import 'package:flutter/services.dart';
 import 'package:trek_bikes_app/vietqr_api.dart';
 import 'package:trek_bikes_app/payment_navigation.dart';
@@ -59,7 +60,7 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = 'Lỗi tải mã QR: $e';
+          error = userErrorMessage(e, 'Không thể tải mã QR. Vui lòng thử lại.');
           loading = false;
         });
       }
@@ -90,9 +91,13 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi kiểm tra trạng thái: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(e, 'Không thể kiểm tra trạng thái thanh toán.'),
+            ),
+          ),
+        );
       }
     }
   }
@@ -118,8 +123,16 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(
+                e,
+                'Không thể xác nhận thanh toán. Vui lòng thử lại.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => confirming = false);

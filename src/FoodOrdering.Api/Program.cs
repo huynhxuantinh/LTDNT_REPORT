@@ -53,7 +53,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             .Where(item => item.Value?.Errors.Count > 0)
             .ToDictionary(
                 item => item.Key,
-                item => item.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+                item => item.Value!.Errors.Select(_ => "Giá trị không hợp lệ hoặc không đúng định dạng.").ToArray());
         return new BadRequestObjectResult(ApiErrorResponse.Validation(details));
     };
 });
@@ -111,10 +111,9 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
 {
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-    var message = app.Environment.IsDevelopment()
-        ? context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error.Message ?? "Đã xảy ra lỗi hệ thống."
-        : "Đã xảy ra lỗi hệ thống.";
-    await context.Response.WriteAsJsonAsync(ApiErrorResponse.Create("internal_error", message));
+    var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    if (error is not null) app.Logger.LogError(error, "Đã xảy ra lỗi hệ thống.");
+    await context.Response.WriteAsJsonAsync(ApiErrorResponse.Create("internal_error", "Đã xảy ra lỗi hệ thống. Vui lòng thử lại."));
 }));
 app.UseAuthentication();
 app.UseAuthorization();

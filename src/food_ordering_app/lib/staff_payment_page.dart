@@ -7,6 +7,9 @@ import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
 import 'package:trek_bikes_app/vnpay_payment_page.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
+import 'package:trek_bikes_app/auth_api.dart';
+import 'package:trek_bikes_app/user_error.dart';
 
 class StaffPaymentPage extends StatefulWidget {
   const StaffPaymentPage({
@@ -66,14 +69,21 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
       );
       if (response.statusCode != 200) {
         final body = jsonDecode(utf8.decode(response.bodyBytes));
-        throw Exception(body['message'] ?? 'Không thể ghi nhận thanh toán.');
+        final message = body is Map && body['error'] is Map
+            ? body['error']['message'] as String?
+            : null;
+        throw ApiException(message ?? 'Không thể ghi nhận thanh toán.');
       }
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Không thể thu tiền: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(error, 'Không thể thu tiền. Vui lòng thử lại.'),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -111,11 +121,6 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
     final colors = Theme.of(context).colorScheme;
     final isPaid = widget.paymentStatus == 'Paid';
     final canPay = !isPaid && widget.orderStatus != 'Cancelled';
-    final orderTypeLabel = switch (widget.orderType) {
-      'DineIn' => 'Ăn tại quán',
-      'TakeAway' => 'Mang đi',
-      _ => widget.orderType,
-    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Thanh toán đơn tại quán')),
@@ -151,10 +156,13 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
                       child: Column(
                         children: [
                           _PaymentRow(label: 'Mã đơn', value: widget.orderCode),
-                          _PaymentRow(label: 'Loại đơn', value: orderTypeLabel),
+                          _PaymentRow(
+                            label: 'Loại đơn',
+                            value: orderTypeLabel(widget.orderType),
+                          ),
                           _PaymentRow(
                             label: 'Trạng thái đơn',
-                            value: widget.orderStatus,
+                            value: orderStatusLabel(widget.orderStatus),
                           ),
                           _PaymentRow(
                             label: 'Thanh toán',

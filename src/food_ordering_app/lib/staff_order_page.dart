@@ -164,14 +164,14 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
 
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Tạo đơn Staff')),
+    appBar: AppBar(title: const Text('Nhân viên tạo đơn')),
     body: Column(
       children: [
         DropdownButton<String>(
           value: type,
           items: const [
-            DropdownMenuItem(value: 'DineIn', child: Text('DineIn')),
-            DropdownMenuItem(value: 'TakeAway', child: Text('TakeAway')),
+            DropdownMenuItem(value: 'DineIn', child: Text('Ăn tại quán')),
+            DropdownMenuItem(value: 'TakeAway', child: Text('Mang đi')),
           ],
           onChanged: (v) => setState(() => type = v!),
         ),

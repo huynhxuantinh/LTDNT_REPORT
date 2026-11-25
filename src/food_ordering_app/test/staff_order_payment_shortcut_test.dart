@@ -58,9 +58,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('DineIn'));
+      await tester.tap(find.text('Ăn tại quán'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('TakeAway').last);
+      await tester.tap(find.text('Mang đi').last);
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.add_shopping_cart));
       await tester.pump();

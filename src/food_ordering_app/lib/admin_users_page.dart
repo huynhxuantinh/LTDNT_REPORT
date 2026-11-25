@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/admin_users_api.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/auth_api.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
@@ -73,7 +74,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 onPressed: () => Navigator.pop(context, value),
                 child: Row(
                   children: [
-                    Expanded(child: Text(value)),
+                    Expanded(child: Text(roleLabel(value))),
                     if (value == user.role) const Icon(Icons.check),
                   ],
                 ),
@@ -87,7 +88,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xác nhận đổi vai trò'),
-        content: Text('Đổi ${user.name} từ ${user.role} sang $role?'),
+        content: Text(
+          'Đổi ${user.name} từ ${roleLabel(user.role)} sang ${roleLabel(role)}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -209,7 +212,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '${user.role} · ${user.active ? 'Đang hoạt động' : 'Đã khóa'} · ${user.verified ? 'Email đã xác thực' : 'Email chưa xác thực'}',
+                                  '${roleLabel(user.role)} · ${user.active ? 'Đang hoạt động' : 'Đã khóa'} · ${user.verified ? 'Email đã xác thực' : 'Email chưa xác thực'}',
                                 ),
                                 Wrap(
                                   spacing: 8,

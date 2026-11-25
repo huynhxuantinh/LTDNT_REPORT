@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/checkout_page.dart';
+import 'package:trek_bikes_app/user_error.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key, this.loadCart, this.setQuantity, this.removeItem});
@@ -52,7 +53,10 @@ class _CartPageState extends State<CartPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = 'Không thể tải giỏ hàng: $e';
+          error = userErrorMessage(
+            e,
+            'Không thể tải giỏ hàng. Vui lòng thử lại.',
+          );
           loading = false;
         });
       }
@@ -70,8 +74,16 @@ class _CartPageState extends State<CartPage> {
       if (mounted) setState(() => cart = res);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(
+                e,
+                'Không thể cập nhật giỏ hàng. Vui lòng thử lại.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => updatingItems.remove(cartItemId));

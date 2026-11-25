@@ -7,6 +7,7 @@ import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/staff_payment_page.dart';
 import 'package:trek_bikes_app/money_format.dart';
+import 'package:trek_bikes_app/vietnamese_labels.dart';
 
 class StaffOrdersPage extends StatefulWidget {
   const StaffOrdersPage({super.key});
@@ -96,7 +97,7 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                   children: [
                     Text(order['orderCode'] as String),
                     Text(
-                      '${order['orderType']} · $status · ${order['paymentStatus']}',
+                      '${orderTypeLabel(order['orderType'])} · ${orderStatusLabel(status)} · ${paymentStatusLabel(order['paymentStatus'])}',
                     ),
                     Text(
                       'Tổng cộng: ${formatVnd(order['totalAmount'] as num)} đ',
@@ -143,7 +144,7 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                             onPressed: busy
                                 ? null
                                 : () => action(id, status: next),
-                            child: Text('Chuyển $next'),
+                            child: Text('Chuyển: ${orderStatusLabel(next)}'),
                           ),
                         if (next != null)
                           TextButton(

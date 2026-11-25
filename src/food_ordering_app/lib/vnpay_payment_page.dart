@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trek_bikes_app/user_error.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:trek_bikes_app/vnpay_api.dart';
@@ -61,7 +62,10 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = 'Lỗi tạo URL VNPay: $e';
+          error = userErrorMessage(
+            e,
+            'Không thể tạo liên kết thanh toán VNPay.',
+          );
           loading = false;
         });
       }
@@ -105,8 +109,11 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Lỗi mở trình duyệt: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(userErrorMessage(e, 'Không thể mở trình duyệt.')),
+          ),
+        );
       }
     }
   }
@@ -135,9 +142,13 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi kiểm tra trạng thái: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(e, 'Không thể kiểm tra trạng thái thanh toán.'),
+            ),
+          ),
+        );
       }
     }
   }
@@ -163,8 +174,16 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userErrorMessage(
+                e,
+                'Không thể xác nhận thanh toán. Vui lòng thử lại.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => simulating = false);
