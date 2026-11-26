@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace FoodOrdering.Api.Controllers;
 public sealed record StaffOrderLine(int FoodItemId,int Quantity);
-public sealed record CreateStaffOrderRequest(string OrderType,int? TableId,List<StaffOrderLine> Items);
+public sealed record CreateStaffOrderRequest(string OrderType, int? TableId, List<StaffOrderLine> Items, string? ReceiverName = null);
 [ApiController,Route("api/staff/orders"),Authorize(Roles="Admin,Staff")]
 public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBase{
  [HttpPut("{id:long}/status")]
@@ -25,7 +25,30 @@ public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBa
    if(order.OrderType=="DineIn" && request.Status=="Cancelled" && order.PaymentStatus!="Paid" && order.TableId is int tableId) { var table=await db.DiningTables.FindAsync([tableId],ct); if(table is not null){table.Status="Available"; table.UpdatedAt=DateTime.UtcNow;} }
    await db.SaveChangesAsync(ct); return Ok(new { orderId=id, status=request.Status });
  }
- [HttpGet] public async Task<IActionResult> Get(CancellationToken ct){return Ok(await db.Orders.AsNoTracking().Where(x=>x.OrderType=="DineIn"||x.OrderType=="TakeAway").OrderByDescending(x=>x.CreatedAt).Select(x=>new{x.OrderId,x.OrderCode,x.OrderType,x.PaymentStatus,Status=x.OrderStatus!.Name,x.TotalAmount}).ToListAsync(ct));}
+ [HttpGet]
+ public async Task<IActionResult> Get(CancellationToken ct) => Ok(await db.Orders.AsNoTracking()
+   .Where(x => x.OrderType == "DineIn" || x.OrderType == "TakeAway")
+   .OrderByDescending(x => x.CreatedAt)
+   .Select(x => new { x.OrderId, x.OrderCode, x.OrderType, x.PaymentStatus, Status = x.OrderStatus!.Name,
+     x.TotalAmount, x.CreatedAt, TableCode = x.DiningTable != null ? x.DiningTable.TableCode : null,
+     CreatedBy = x.User != null ? x.User.FullName : null, x.ReceiverName })
+   .ToListAsync(ct));
+
+ [HttpGet("{id:long}")]
+ public async Task<IActionResult> GetDetail(long id, CancellationToken ct)
+ {
+   var order = await db.Orders.AsNoTracking()
+     .Where(x => x.OrderId == id && (x.OrderType == "DineIn" || x.OrderType == "TakeAway"))
+     .Select(x => new { x.OrderId, x.OrderCode, x.OrderType, x.PaymentStatus, Status = x.OrderStatus!.Name,
+       x.TotalAmount, x.CreatedAt, x.Note, x.ReceiverName,
+       TableCode = x.DiningTable != null ? x.DiningTable.TableCode : null,
+       CreatedBy = x.User != null ? x.User.FullName : null,
+       Items = x.OrderDetails.OrderBy(d => d.OrderDetailId).Select(d => new {
+         d.FoodNameSnapshot, d.UnitPrice, d.Quantity
+       }).ToList() })
+     .SingleOrDefaultAsync(ct);
+   return order is null ? NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn tại quán.")) : Ok(order);
+ }
  [HttpPost]
  public async Task<IActionResult> Create(CreateStaffOrderRequest r, CancellationToken ct)
  {
@@ -35,6 +58,8 @@ public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBa
      return BadRequest(ApiErrorResponse.Create("invalid_quantity", "Mỗi món phải có số lượng từ 1 đến 99."));
    if (r.Items.Select(x => x.FoodItemId).Distinct().Count() != r.Items.Count)
      return BadRequest(ApiErrorResponse.Create("duplicate_food", "Mỗi món chỉ được xuất hiện một lần trong đơn."));
+   if (r.ReceiverName?.Trim().Length > 120)
+     return BadRequest(ApiErrorResponse.Create("invalid_customer_name", "Tên khách không được vượt quá 120 ký tự."));
 
    await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
    if (r.OrderType == "DineIn")
@@ -50,6 +75,7 @@ public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBa
    var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
    var order = new FoodOrder { OrderCode = $"OFF-{DateTime.UtcNow:yyyyMMddHHmmssfff}", UserId = user, OrderStatusId = 1,
      OrderType = r.OrderType, TableId = r.OrderType == "DineIn" ? r.TableId : null,
+     ReceiverName = string.IsNullOrWhiteSpace(r.ReceiverName) ? null : r.ReceiverName.Trim(),
      TotalAmount = r.Items.Sum(x => foods[x.FoodItemId].Price * x.Quantity), PaymentStatus = "Unpaid", CreatedAt = DateTime.UtcNow };
    foreach (var line in r.Items)
    {

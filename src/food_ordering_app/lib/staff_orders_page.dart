@@ -8,6 +8,7 @@ import 'package:trek_bikes_app/session_helper.dart';
 import 'package:trek_bikes_app/staff_payment_page.dart';
 import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/vietnamese_labels.dart';
+import 'package:trek_bikes_app/staff_order_detail_page.dart';
 
 class StaffOrdersPage extends StatefulWidget {
   const StaffOrdersPage({super.key});
@@ -83,6 +84,7 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
             final order = list[i] as Map<String, dynamic>;
             final id = order['orderId'] as int;
             final status = order['status'] as String;
+            final isDineIn = order['orderType'] == 'DineIn';
             final next = switch (status) {
               'Pending' => 'Confirmed',
               'Confirmed' => 'Preparing',
@@ -97,7 +99,18 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                   children: [
                     Text(order['orderCode'] as String),
                     Text(
-                      '${orderTypeLabel(order['orderType'])} · ${orderStatusLabel(status)} · ${paymentStatusLabel(order['paymentStatus'])}',
+                      order['orderType'] == 'DineIn'
+                          ? 'Bàn: ${order['tableCode'] ?? 'Không có thông tin'}'
+                          : 'Đơn mang đi',
+                    ),
+                    Text(
+                      'Nhân viên tạo: ${order['createdBy'] ?? 'Không có thông tin'}',
+                    ),
+                    Text('Khách: ${order['receiverName'] ?? 'Chưa ghi nhận'}'),
+                    Text(
+                      isDineIn
+                          ? paymentStatusLabel(order['paymentStatus'])
+                          : '${orderTypeLabel(order['orderType'])} · ${orderStatusLabel(status)} · ${paymentStatusLabel(order['paymentStatus'])}',
                     ),
                     Text(
                       'Tổng cộng: ${formatVnd(order['totalAmount'] as num)} đ',
@@ -106,6 +119,20 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                     Wrap(
                       spacing: 8,
                       children: [
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      StaffOrderDetailPage(orderId: id),
+                                ),
+                              ).then((_) {
+                                if (mounted) setState(reload);
+                              }),
+                          icon: const Icon(Icons.info_outline),
+                          label: const Text('Xem chi tiết'),
+                        ),
                         OutlinedButton.icon(
                           onPressed:
                               status == 'Cancelled' &&
@@ -139,14 +166,14 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                                 : 'Thanh toán',
                           ),
                         ),
-                        if (next != null)
+                        if (!isDineIn && next != null)
                           OutlinedButton(
                             onPressed: busy
                                 ? null
                                 : () => action(id, status: next),
                             child: Text('Chuyển: ${orderStatusLabel(next)}'),
                           ),
-                        if (next != null)
+                        if (!isDineIn && next != null)
                           TextButton(
                             onPressed: busy
                                 ? null

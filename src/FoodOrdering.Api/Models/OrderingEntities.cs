@@ -26,6 +26,16 @@ public sealed class FoodItem
     public DateTime? UpdatedAt { get; set; }
     public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
     public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+    public ICollection<FoodItemImage> Images { get; set; } = new List<FoodItemImage>();
+}
+
+public sealed class FoodItemImage
+{
+    public int FoodItemImageId { get; set; }
+    public int FoodItemId { get; set; }
+    public FoodItem? FoodItem { get; set; }
+    public required string ImageUrl { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class Cart

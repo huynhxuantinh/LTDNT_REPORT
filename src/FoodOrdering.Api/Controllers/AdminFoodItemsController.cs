@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using FoodOrdering.Api.Common;
 using FoodOrdering.Api.FoodItems;
+using FoodOrdering.Api.Data;
 using FoodOrdering.Api.Uploads;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrdering.Api.Controllers;
 
@@ -43,7 +45,7 @@ public sealed class UpdateFoodItemRequest
 [ApiController]
 [Route("api/admin/food-items")]
 [Authorize(Roles = "Admin")]
-public sealed class AdminFoodItemsController(AdminFoodItemService foodItemService, IFoodImageStorage imageStorage) : ControllerBase
+public sealed class AdminFoodItemsController(AdminFoodItemService foodItemService, IFoodImageStorage imageStorage, FoodOrderingDbContext db, ILogger<AdminFoodItemsController> logger) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<PagedResponse<FoodItemListItem>>> GetAll(
@@ -123,10 +125,16 @@ public sealed class AdminFoodItemsController(AdminFoodItemService foodItemServic
     [HttpDelete("{foodItemId:int}")]
     public async Task<IActionResult> Delete(int foodItemId, CancellationToken cancellationToken)
     {
+        var extraImages = await db.FoodItemImages.AsNoTracking().Where(x => x.FoodItemId == foodItemId)
+            .Select(x => x.ImageUrl).ToListAsync(cancellationToken);
         var result = await foodItemService.DeleteAsync(foodItemId, cancellationToken);
         if (result.IsSuccess)
         {
-            await imageStorage.DeleteAsync(result.Value, cancellationToken);
+            foreach (var url in extraImages.Prepend(result.Value).Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                try { await imageStorage.DeleteAsync(url, CancellationToken.None); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { logger.LogWarning(error, "Không thể xóa ảnh món ăn."); }
+            }
             return NoContent();
         }
 

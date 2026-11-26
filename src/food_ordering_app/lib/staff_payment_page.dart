@@ -160,10 +160,11 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
                             label: 'Loại đơn',
                             value: orderTypeLabel(widget.orderType),
                           ),
-                          _PaymentRow(
-                            label: 'Trạng thái đơn',
-                            value: orderStatusLabel(widget.orderStatus),
-                          ),
+                          if (widget.orderType != 'DineIn')
+                            _PaymentRow(
+                              label: 'Trạng thái đơn',
+                              value: orderStatusLabel(widget.orderStatus),
+                            ),
                           _PaymentRow(
                             label: 'Thanh toán',
                             value: isPaid ? 'Đã thanh toán' : 'Chưa thanh toán',

@@ -65,6 +65,34 @@ class MemberFoodPage {
 }
 
 class MemberFoodApi {
+  static Future<List<String>> getImages(int foodId) async {
+    final cacheKey = 'food-images:$foodId';
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/api/foods/$foodId/images'))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200)
+        throw const ApiException('Không thể tải ảnh món ăn.');
+      final images = (jsonDecode(utf8.decode(response.bodyBytes)) as List)
+          .whereType<String>()
+          .toList();
+      try {
+        await LocalDatabase.instance.saveResponse(cacheKey, images);
+      } catch (_) {
+        /* Cache is optional. */
+      }
+      return images;
+    } catch (_) {
+      try {
+        final cached = await LocalDatabase.instance.readResponse(cacheKey);
+        if (cached is List) return cached.whereType<String>().toList();
+      } catch (_) {
+        /* No cached photos. */
+      }
+      return [];
+    }
+  }
+
   static Future<MemberFoodPage> getPage({
     required int page,
     required int pageSize,

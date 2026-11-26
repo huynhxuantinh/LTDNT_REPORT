@@ -77,8 +77,64 @@ class FoodHasOrdersException implements Exception {
   const FoodHasOrdersException(this.message);
 }
 
+class FoodPhoto {
+  const FoodPhoto({
+    required this.imageId,
+    required this.imageUrl,
+    required this.isCover,
+  });
+  final int? imageId;
+  final String imageUrl;
+  final bool isCover;
+
+  factory FoodPhoto.fromJson(Map<String, dynamic> json) => FoodPhoto(
+    imageId: json['imageId'] as int?,
+    imageUrl: json['imageUrl'] as String,
+    isCover: json['isCover'] as bool,
+  );
+}
+
 class FoodItemApi {
   static String get _baseUrl => ApiConfig.baseUrl;
+
+  static Future<List<FoodPhoto>> getImages(int foodItemId) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images'),
+      headers: await _headers(),
+    );
+    _ensure(response, 200);
+    return (jsonDecode(utf8.decode(response.bodyBytes)) as List)
+        .map((value) => FoodPhoto.fromJson(value as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<FoodPhoto> addImage(
+    int foodItemId,
+    Uint8List bytes,
+    String name,
+  ) async {
+    final request =
+        http.MultipartRequest(
+            'POST',
+            Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images'),
+          )
+          ..headers.addAll(await _headers())
+          ..files.add(_imagePart(bytes, name));
+    final response = await http.Response.fromStream(await request.send());
+    _ensure(response, 200);
+    return FoodPhoto.fromJson(
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+    );
+  }
+
+  static Future<void> deleteImage(int foodItemId, FoodPhoto photo) async {
+    final part = photo.isCover ? 'cover' : '${photo.imageId}';
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images/$part'),
+      headers: await _headers(),
+    );
+    _ensure(response, 204);
+  }
 
   static Future<AdminFoodPage> getPage({
     required int page,
