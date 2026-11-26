@@ -265,11 +265,14 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
                                           ),
                                           Text('${items[f.foodItemId]}'),
                                           IconButton(
-                                            onPressed: () => setState(
-                                              () => items[f.foodItemId] =
-                                                  (items[f.foodItemId] ?? 0) +
-                                                  1,
-                                            ),
+                                            onPressed:
+                                                items[f.foodItemId]! >= 99
+                                                ? null
+                                                : () => setState(
+                                                    () => items[f.foodItemId] =
+                                                        items[f.foodItemId]! +
+                                                        1,
+                                                  ),
                                             icon: const Icon(Icons.add),
                                           ),
                                         ],

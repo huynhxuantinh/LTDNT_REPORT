@@ -17,6 +17,8 @@ public sealed class CartService(FoodOrderingDbContext db)
 {
     public async Task<CartResult<CartDto>> ApplySyncAsync(Guid userId, Guid operationId, int foodId, string action, int quantity, CancellationToken ct)
     {
+        if (action is "add" or "set" && quantity is < 1 or > 99)
+            return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món phải có số lượng từ 1 đến 99.");
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var previous = await db.CartSyncOperations.SingleOrDefaultAsync(x => x.OperationId == operationId, ct);
         if (previous is not null)
@@ -24,7 +26,7 @@ public sealed class CartService(FoodOrderingDbContext db)
 
         CartResult<CartDto>? result = null;
         var item = await db.CartItems.Include(x => x.Cart).SingleOrDefaultAsync(x => x.Cart!.UserId == userId && x.FoodItemId == foodId, ct);
-        if (action == "add" && item is not null && item.Quantity + quantity > 99)
+        if (action == "add" && item is not null && quantity > 99 - item.Quantity)
             return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món tối đa 99 phần.");
         if (action == "add") result = await AddAsync(userId, foodId, quantity, ct);
         else if (action == "set" && item is not null) result = await SetQuantityAsync(userId, item.CartItemId, quantity, ct);
@@ -77,19 +79,30 @@ public sealed class CartService(FoodOrderingDbContext db)
 
     public async Task<CartResult<CartDto>> AddAsync(Guid userId, int foodItemId, int quantity, CancellationToken ct)
     {
-        var food = await db.FoodItems.SingleOrDefaultAsync(x => x.FoodItemId == foodItemId && x.IsAvailable, ct);
-        if (food is null) return CartResult<CartDto>.Failure("food_not_available", "Món ăn không còn bán.");
-        var cart = await db.Carts.Include(x => x.CartItems).ThenInclude(x => x.FoodItem).SingleOrDefaultAsync(x => x.UserId == userId, ct);
-        if (cart is null) { cart = new Cart { CartId = Guid.NewGuid(), UserId = userId, UpdatedAt = DateTime.UtcNow }; db.Carts.Add(cart); }
-        var item = cart.CartItems.SingleOrDefault(x => x.FoodItemId == foodItemId);
-        if (item is null) cart.CartItems.Add(new CartItem { FoodItemId = foodItemId, FoodItem = food, Quantity = quantity, UnitPrice = food.Price, CreatedAt = DateTime.UtcNow });
-        else { item.Quantity += quantity; item.UnitPrice = food.Price; item.UpdatedAt = DateTime.UtcNow; }
-        cart.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(ct);
+        if (quantity is < 1 or > 99) return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món phải có số lượng từ 1 đến 99.");
+        // Sync already owns a serializable transaction; standalone additions need their own.
+        await using (var tx = db.Database.IsRelational() && db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct) : null)
+        {
+            var food = await db.FoodItems.SingleOrDefaultAsync(x => x.FoodItemId == foodItemId && x.IsAvailable, ct);
+            if (food is null) return CartResult<CartDto>.Failure("food_not_available", "Món ăn không còn bán.");
+            var cart = await db.Carts.Include(x => x.CartItems).ThenInclude(x => x.FoodItem).SingleOrDefaultAsync(x => x.UserId == userId, ct);
+            if (cart is null) { cart = new Cart { CartId = Guid.NewGuid(), UserId = userId, UpdatedAt = DateTime.UtcNow }; db.Carts.Add(cart); }
+            var item = cart.CartItems.SingleOrDefault(x => x.FoodItemId == foodItemId);
+            if (item is not null && quantity > 99 - item.Quantity)
+                return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món tối đa 99 phần.");
+            if (item is null) cart.CartItems.Add(new CartItem { FoodItemId = foodItemId, FoodItem = food, Quantity = quantity, UnitPrice = food.Price, CreatedAt = DateTime.UtcNow });
+            else { item.Quantity += quantity; item.UnitPrice = food.Price; item.UpdatedAt = DateTime.UtcNow; }
+            cart.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            if (tx is not null) await tx.CommitAsync(ct);
+        }
         return CartResult<CartDto>.Success(await GetAsync(userId, ct));
     }
 
     public async Task<CartResult<CartDto>> SetQuantityAsync(Guid userId, int cartItemId, int quantity, CancellationToken ct)
     {
+        if (quantity is < 1 or > 99) return CartResult<CartDto>.Failure("quantity_limit", "Mỗi món phải có số lượng từ 1 đến 99.");
         var item = await db.CartItems.Include(x => x.Cart).SingleOrDefaultAsync(x => x.CartItemId == cartItemId && x.Cart!.UserId == userId, ct);
         if (item is null) return CartResult<CartDto>.Failure("cart_item_not_found", "Không tìm thấy món trong giỏ hàng.");
         item.Quantity = quantity; item.UpdatedAt = DateTime.UtcNow; item.Cart!.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(ct);

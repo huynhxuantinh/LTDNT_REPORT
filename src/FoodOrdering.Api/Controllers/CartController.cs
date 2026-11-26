@@ -30,5 +30,5 @@ public sealed class CartController(CartService carts) : ControllerBase
     [HttpPost("checkout/delivery")]
     public async Task<ActionResult<object>> Checkout(CheckoutDeliveryRequest request, CancellationToken ct) { var result = await carts.CheckoutAsync(UserId, request.ReceiverName, request.ReceiverPhone, request.DeliveryAddress, request.Note, ct); return result.IsSuccess ? Ok(new { orderId = result.Value }) : BadRequest(ApiErrorResponse.Create(result.ErrorCode!, result.Error!)); }
     private Guid UserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-    private async Task<ActionResult<CartDto>> Execute(Task<CartResult<CartDto>> task) { var result = await task; return result.IsSuccess ? Ok(result.Value) : NotFound(ApiErrorResponse.Create(result.ErrorCode!, result.Error!)); }
+    private async Task<ActionResult<CartDto>> Execute(Task<CartResult<CartDto>> task) { var result = await task; if (result.IsSuccess) return Ok(result.Value); return result.ErrorCode == "quantity_limit" ? BadRequest(ApiErrorResponse.Create(result.ErrorCode, result.Error!)) : NotFound(ApiErrorResponse.Create(result.ErrorCode!, result.Error!)); }
 }

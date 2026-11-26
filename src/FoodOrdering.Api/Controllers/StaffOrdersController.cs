@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Data;
 using FoodOrdering.Api.Data;
 using FoodOrdering.Api.Models;
+using FoodOrdering.Api.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,5 +26,40 @@ public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBa
    await db.SaveChangesAsync(ct); return Ok(new { orderId=id, status=request.Status });
  }
  [HttpGet] public async Task<IActionResult> Get(CancellationToken ct){return Ok(await db.Orders.AsNoTracking().Where(x=>x.OrderType=="DineIn"||x.OrderType=="TakeAway").OrderByDescending(x=>x.CreatedAt).Select(x=>new{x.OrderId,x.OrderCode,x.OrderType,x.PaymentStatus,Status=x.OrderStatus!.Name,x.TotalAmount}).ToListAsync(ct));}
- [HttpPost] public async Task<IActionResult> Create(CreateStaffOrderRequest r,CancellationToken ct){if(r.OrderType is not ("DineIn" or "TakeAway")||r.Items.Count==0)return BadRequest();await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct);DiningTable? table=null;if(r.OrderType=="DineIn"){table=await db.DiningTables.SingleOrDefaultAsync(x=>x.TableId==r.TableId&&x.Status=="Available",ct);if(table is null)return Conflict(new{error="table_unavailable"});table.Status="Occupied";table.UpdatedAt=DateTime.UtcNow;}var ids=r.Items.Select(x=>x.FoodItemId).ToList();var foods=await db.FoodItems.Where(x=>ids.Contains(x.FoodItemId)&&x.IsAvailable).ToDictionaryAsync(x=>x.FoodItemId,ct);if(foods.Count!=ids.Count)return BadRequest();var user=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);var o=new FoodOrder{OrderCode=$"OFF-{DateTime.UtcNow:yyyyMMddHHmmssfff}",UserId=user,OrderStatusId=1,OrderType=r.OrderType,TableId=r.TableId,TotalAmount=r.Items.Sum(x=>foods[x.FoodItemId].Price*x.Quantity),PaymentStatus="Unpaid",CreatedAt=DateTime.UtcNow};foreach(var x in r.Items){var f=foods[x.FoodItemId];o.OrderDetails.Add(new OrderDetail{FoodItemId=f.FoodItemId,FoodNameSnapshot=f.Name,UnitPrice=f.Price,Quantity=x.Quantity});}db.Orders.Add(o);await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return Ok(new{orderId=o.OrderId,orderCode=o.OrderCode,orderType=o.OrderType,status="Pending",paymentStatus=o.PaymentStatus,totalAmount=o.TotalAmount});}
+ [HttpPost]
+ public async Task<IActionResult> Create(CreateStaffOrderRequest r, CancellationToken ct)
+ {
+   if (r.OrderType is not ("DineIn" or "TakeAway") || r.Items is null || r.Items.Count == 0)
+     return BadRequest(ApiErrorResponse.Create("invalid_order", "Vui lòng chọn loại đơn và ít nhất một món."));
+   if (r.Items.Any(x => x is null || x.FoodItemId <= 0 || x.Quantity is < 1 or > 99))
+     return BadRequest(ApiErrorResponse.Create("invalid_quantity", "Mỗi món phải có số lượng từ 1 đến 99."));
+   if (r.Items.Select(x => x.FoodItemId).Distinct().Count() != r.Items.Count)
+     return BadRequest(ApiErrorResponse.Create("duplicate_food", "Mỗi món chỉ được xuất hiện một lần trong đơn."));
+
+   await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+   if (r.OrderType == "DineIn")
+   {
+     var table = await db.DiningTables.SingleOrDefaultAsync(x => x.TableId == r.TableId && x.Status == "Available", ct);
+     if (table is null) return Conflict(ApiErrorResponse.Create("table_unavailable", "Bàn không còn trống."));
+     table.Status = "Occupied";
+     table.UpdatedAt = DateTime.UtcNow;
+   }
+   var ids = r.Items.Select(x => x.FoodItemId).ToList();
+   var foods = await db.FoodItems.Where(x => ids.Contains(x.FoodItemId) && x.IsAvailable).ToDictionaryAsync(x => x.FoodItemId, ct);
+   if (foods.Count != ids.Count) return BadRequest(ApiErrorResponse.Create("food_not_available", "Có món không còn bán."));
+   var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+   var order = new FoodOrder { OrderCode = $"OFF-{DateTime.UtcNow:yyyyMMddHHmmssfff}", UserId = user, OrderStatusId = 1,
+     OrderType = r.OrderType, TableId = r.OrderType == "DineIn" ? r.TableId : null,
+     TotalAmount = r.Items.Sum(x => foods[x.FoodItemId].Price * x.Quantity), PaymentStatus = "Unpaid", CreatedAt = DateTime.UtcNow };
+   foreach (var line in r.Items)
+   {
+     var food = foods[line.FoodItemId];
+     order.OrderDetails.Add(new OrderDetail { FoodItemId = food.FoodItemId, FoodNameSnapshot = food.Name, UnitPrice = food.Price, Quantity = line.Quantity });
+   }
+   db.Orders.Add(order);
+   await db.SaveChangesAsync(ct);
+   await tx.CommitAsync(ct);
+   return Ok(new { orderId = order.OrderId, orderCode = order.OrderCode, orderType = order.OrderType,
+     status = "Pending", paymentStatus = order.PaymentStatus, totalAmount = order.TotalAmount });
+ }
 }
