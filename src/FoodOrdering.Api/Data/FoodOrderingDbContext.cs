@@ -14,6 +14,7 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
     public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FoodItem> FoodItems => Set<FoodItem>();
+    public DbSet<FoodItemImage> FoodItemImages => Set<FoodItemImage>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<CartSyncOperation> CartSyncOperations => Set<CartSyncOperation>();
@@ -108,6 +109,15 @@ public sealed class FoodOrderingDbContext(DbContextOptions<FoodOrderingDbContext
             entity.HasIndex(x => new { x.CategoryId, x.Name }).IsUnique();
             entity.HasIndex(x => new { x.CategoryId, x.IsAvailable });
             entity.HasOne(x => x.Category).WithMany(x => x.FoodItems).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FoodItemImage>(entity =>
+        {
+            entity.ToTable("FoodItemImages");
+            entity.HasKey(x => x.FoodItemImageId);
+            entity.Property(x => x.ImageUrl).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => x.FoodItemId);
+            entity.HasOne(x => x.FoodItem).WithMany(x => x.Images).HasForeignKey(x => x.FoodItemId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Cart>(entity =>

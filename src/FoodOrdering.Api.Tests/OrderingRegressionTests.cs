@@ -89,6 +89,7 @@ public sealed class OrderingRegressionTests
         var pending = new OrderStatus { Name = "Pending", OrderStatusId = 1 };
         var confirmed = new OrderStatus { Name = "Confirmed", OrderStatusId = 2 };
         var creator = Guid.NewGuid(); var actor = Guid.NewGuid();
+        db.Users.Add(new User { UserId = creator, FullName = "Nhân viên", Email = "staff@example.com", PasswordHash = "hash" });
         db.OrderStatuses.AddRange(pending, confirmed);
         db.Orders.AddRange(
             new FoodOrder { OrderCode = "OFF-1", PaymentStatus = "Unpaid", UserId = creator, OrderType = "TakeAway", OrderStatus = pending },

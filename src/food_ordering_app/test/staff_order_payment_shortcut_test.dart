@@ -23,6 +23,10 @@ void main() {
       expect(jsonDecode(request.body)['items'], [
         {'foodItemId': 1, 'quantity': 1},
       ]);
+      expect(
+        jsonDecode(utf8.decode(request.bodyBytes))['receiverName'],
+        'Bình',
+      );
       return http.Response(
         jsonEncode({
           'orderId': 123,
@@ -62,6 +66,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mang đi').last);
       await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Tên khách (không bắt buộc)'),
+        '  Bình  ',
+      );
       await tester.tap(find.byIcon(Icons.add_shopping_cart));
       await tester.pump();
       await tester.tap(find.text('Tạo đơn và thanh toán'));

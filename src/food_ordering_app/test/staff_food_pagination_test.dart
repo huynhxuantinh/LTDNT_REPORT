@@ -89,7 +89,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byTooltip('Trang sau'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '  Phở  ');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Tìm món ăn'),
+      '  Phở  ',
+    );
     await tester.tap(find.byTooltip('Tìm kiếm'));
     await tester.pumpAndSettle();
     expect(calls.last, (1, 'Phở'));

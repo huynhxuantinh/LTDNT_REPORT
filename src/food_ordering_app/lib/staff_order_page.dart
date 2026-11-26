@@ -27,6 +27,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
   static const _pageSize = 10;
   int _foodPage = 1;
   final _searchController = TextEditingController();
+  final _customerController = TextEditingController();
   String _search = '';
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _customerController.dispose();
     super.dispose();
   }
 
@@ -86,6 +88,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
         body: jsonEncode({
           'orderType': type,
           'tableId': type == 'DineIn' ? tableId : null,
+          'receiverName': _customerController.text.trim(),
           'items': items.entries
               .map((x) => {'foodItemId': x.key, 'quantity': x.value})
               .toList(),
@@ -96,6 +99,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
       if (mounted) {
         setState(() {
           items.clear();
+          _customerController.clear();
           tableId = null;
           tables = widget.loadTables?.call() ?? _tables();
         });
@@ -192,6 +196,19 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
               onChanged: (v) => setState(() => tableId = v),
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: TextField(
+            controller: _customerController,
+            maxLength: 120,
+            decoration: const InputDecoration(
+              labelText: 'Tên khách (không bắt buộc)',
+              prefixIcon: Icon(Icons.person_outline),
+              counterText: '',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: TextField(

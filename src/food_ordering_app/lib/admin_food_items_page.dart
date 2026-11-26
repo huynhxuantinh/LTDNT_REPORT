@@ -11,8 +11,11 @@ import 'package:trek_bikes_app/money_format.dart';
 
 /// Màn hình Quản lý món ăn (CHỈ DÀNH CHO ADMIN).
 /// Cho phép tìm kiếm, lọc, phân trang, thêm món (kèm upload ảnh), sửa món và xóa/ẩn món.
+typedef SelectedFoodPhoto = ({Uint8List bytes, String name});
+
 class AdminFoodItemsPage extends StatefulWidget {
-  const AdminFoodItemsPage({super.key});
+  const AdminFoodItemsPage({super.key, this.pickImages});
+  final Future<List<SelectedFoodPhoto>> Function()? pickImages;
 
   @override
   State<AdminFoodItemsPage> createState() => _AdminFoodItemsPageState();
@@ -88,12 +91,17 @@ class _AdminFoodItemsPageState extends State<AdminFoodItemsPage> {
 
     if (!mounted) return;
 
-    final saved = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
-      builder: (_) => _FoodItemEditorDialog(item: item, categories: categories),
+      barrierDismissible: false,
+      builder: (_) => _FoodItemEditorDialog(
+        item: item,
+        categories: categories,
+        pickImages: widget.pickImages,
+      ),
     );
 
-    if (saved == true && mounted) {
+    if (mounted) {
       setState(_reloadFoods);
     }
   }
@@ -406,8 +414,13 @@ class _FoodItemTile extends StatelessWidget {
 class _FoodItemEditorDialog extends StatefulWidget {
   final AdminFoodItem? item;
   final List<AdminCategory> categories;
+  final Future<List<SelectedFoodPhoto>> Function()? pickImages;
 
-  const _FoodItemEditorDialog({required this.item, required this.categories});
+  const _FoodItemEditorDialog({
+    required this.item,
+    required this.categories,
+    this.pickImages,
+  });
 
   @override
   State<_FoodItemEditorDialog> createState() => _FoodItemEditorDialogState();
@@ -419,8 +432,13 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
   late final TextEditingController _priceController;
   late final TextEditingController _descController;
   late int _categoryId;
-  Uint8List? _imageBytes;
-  String? _imageName;
+  AdminFoodItem? _savedItem;
+  List<FoodPhoto> _photos = [];
+  final List<SelectedFoodPhoto> _pendingPhotos = [];
+  final List<String> _deletedPhotoUrls = [];
+  bool _photosLoading = false;
+  bool _photosFailed = false;
+  bool _changed = false;
   bool _saving = false;
   String? _error;
 
@@ -435,6 +453,8 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
       text: widget.item?.description ?? '',
     );
     _categoryId = widget.item?.categoryId ?? widget.categories.first.categoryId;
+    _savedItem = widget.item;
+    if (_savedItem != null) _loadPhotos();
   }
 
   @override
@@ -445,21 +465,70 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final files = await FilePicker.pickFiles(type: FileType.image);
-    if (files.isEmpty) return;
-    final file = files.first;
-    final bytes = await file.xFile.readAsBytes();
+  Future<void> _loadPhotos() async {
     setState(() {
-      _imageBytes = bytes;
-      _imageName = file.name;
-      _error = null;
+      _photosLoading = true;
+      _photosFailed = false;
     });
+    try {
+      final images = await FoodItemApi.getImages(_savedItem!.foodItemId);
+      if (mounted)
+        setState(() {
+          _photos = images
+              .where((p) => !_deletedPhotoUrls.contains(p.imageUrl))
+              .toList();
+        });
+    } catch (_) {
+      if (mounted) setState(() => _photosFailed = true);
+    } finally {
+      if (mounted) setState(() => _photosLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final List<SelectedFoodPhoto> photos;
+      if (widget.pickImages != null) {
+        photos = await widget.pickImages!();
+      } else {
+        final files = await FilePicker.pickFiles(type: FileType.image);
+        photos = [];
+        for (final file in files) {
+          if (await file.xFile.length() > 5 * 1024 * 1024)
+            throw const ApiException('Mỗi ảnh không được vượt quá 5 MB.');
+          photos.add((bytes: await file.xFile.readAsBytes(), name: file.name));
+        }
+      }
+      for (final photo in photos) {
+        final lower = photo.name.toLowerCase();
+        if (!(lower.endsWith('.jpg') ||
+            lower.endsWith('.jpeg') ||
+            lower.endsWith('.png') ||
+            lower.endsWith('.webp'))) {
+          throw const ApiException('Chỉ hỗ trợ ảnh JPEG, PNG hoặc WEBP.');
+        }
+        if (photo.bytes.isEmpty || photo.bytes.length > 5 * 1024 * 1024) {
+          throw const ApiException(
+            'Mỗi ảnh phải có dung lượng từ 1 byte đến 5 MB.',
+          );
+        }
+      }
+      if (mounted)
+        setState(() {
+          _pendingPhotos.addAll(photos);
+          _error = null;
+        });
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted)
+        setState(() => _error = 'Không thể chọn ảnh. Vui lòng thử lại.');
+    }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (widget.item == null && _imageBytes == null) {
+    if (_savedItem == null && _pendingPhotos.isEmpty) {
       setState(() => _error = 'Vui lòng chọn hình ảnh cho món ăn mới.');
       return;
     }
@@ -476,32 +545,69 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
     });
 
     try {
-      if (widget.item == null) {
-        await FoodItemApi.create(
+      if (_savedItem == null) {
+        final cover = _pendingPhotos.first;
+        final created = await FoodItemApi.create(
           categoryId: _categoryId,
           name: _nameController.text.trim(),
           description: _descController.text.trim(),
           price: price,
-          imageBytes: _imageBytes!,
-          imageName: _imageName!,
+          imageBytes: cover.bytes,
+          imageName: cover.name,
         );
+        _savedItem = created;
+        _pendingPhotos.removeAt(0);
+        if (created.imageUrl != null)
+          _photos.add(
+            FoodPhoto(
+              imageId: null,
+              imageUrl: created.imageUrl!,
+              isCover: true,
+            ),
+          );
       } else {
         await FoodItemApi.update(
-          foodItemId: widget.item!.foodItemId,
+          foodItemId: _savedItem!.foodItemId,
           categoryId: _categoryId,
           name: _nameController.text.trim(),
           description: _descController.text.trim(),
           price: price,
-          imageBytes: _imageBytes,
-          imageName: _imageName,
         );
+      }
+      _changed = true;
+      while (_pendingPhotos.isNotEmpty) {
+        final photo = _pendingPhotos.first;
+        final savedPhoto = await FoodItemApi.addImage(
+          _savedItem!.foodItemId,
+          photo.bytes,
+          photo.name,
+        );
+        _photos.add(savedPhoto);
+        _pendingPhotos.removeAt(0);
+      }
+      while (_deletedPhotoUrls.isNotEmpty) {
+        final url = _deletedPhotoUrls.first;
+        final current = await FoodItemApi.getImages(_savedItem!.foodItemId);
+        final matching = current.where((p) => p.imageUrl == url);
+        if (matching.isNotEmpty)
+          await FoodItemApi.deleteImage(_savedItem!.foodItemId, matching.first);
+        _deletedPhotoUrls.removeAt(0);
       }
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted)
+        setState(
+          () => _error = _changed
+              ? 'Đã lưu một phần. ${e.message} Bạn có thể thử lại.'
+              : e.message,
+        );
     } catch (_) {
       if (mounted)
-        setState(() => _error = 'Không thể lưu món ăn. Thử lại sau.');
+        setState(
+          () => _error = _changed
+              ? 'Đã lưu một phần. Không thể cập nhật ảnh; hãy thử lại.'
+              : 'Không thể lưu món ăn. Thử lại sau.',
+        );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -559,14 +665,69 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
                 decoration: const InputDecoration(labelText: 'Mô tả'),
               ),
               const SizedBox(height: 14),
+              Text(
+                'Hình ảnh món ăn',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              if (_photosLoading) const LinearProgressIndicator(),
+              if (_photosFailed)
+                TextButton.icon(
+                  onPressed: _loadPhotos,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Không tải được ảnh. Thử lại'),
+                ),
+              if (!_photosLoading &&
+                  !_photosFailed &&
+                  _photos.isEmpty &&
+                  _pendingPhotos.isEmpty)
+                const Text('Chưa chọn ảnh.'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._photos.map(
+                    (photo) => _imagePreview(
+                      image: FoodImage(imageUrl: photo.imageUrl, size: 88),
+                      label: photo.isCover ? 'Ảnh chính' : 'Ảnh đã lưu',
+                      onRemove: () => setState(() {
+                        _photos.remove(photo);
+                        _deletedPhotoUrls.add(photo.imageUrl);
+                      }),
+                    ),
+                  ),
+                  ..._pendingPhotos.map(
+                    (photo) => _imagePreview(
+                      image: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(
+                          photo.bytes,
+                          width: 88,
+                          height: 88,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const SizedBox(
+                            width: 88,
+                            height: 88,
+                            child: Icon(Icons.broken_image_outlined),
+                          ),
+                        ),
+                      ),
+                      label:
+                          _savedItem == null &&
+                              identical(photo, _pendingPhotos.first)
+                          ? 'Ảnh chính'
+                          : 'Ảnh mới',
+                      onRemove: () =>
+                          setState(() => _pendingPhotos.remove(photo)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _saving ? null : _pickImage,
                 icon: const Icon(Icons.image_outlined),
-                label: Text(
-                  _imageName != null
-                      ? 'Đã chọn: $_imageName'
-                      : (isNew ? 'Chọn ảnh món *' : 'Đổi ảnh mới (tùy chọn)'),
-                ),
+                label: Text(isNew ? 'Chọn ảnh món *' : 'Thêm ảnh'),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
@@ -585,10 +746,55 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
           child: const Text('Hủy'),
         ),
         FilledButton(
-          onPressed: _saving ? null : _save,
+          onPressed: _saving || _photosLoading || _photosFailed ? null : _save,
           child: Text(_saving ? 'Đang lưu...' : 'Lưu'),
         ),
       ],
     );
   }
+
+  Widget _imagePreview({
+    required Widget image,
+    required String label,
+    required VoidCallback onRemove,
+  }) => SizedBox(
+    width: 96,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          children: [
+            image,
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _saving ? null : onRemove,
+                  child: const Padding(
+                    padding: EdgeInsets.all(5),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white,
+                      semanticLabel: 'Xóa ảnh',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    ),
+  );
 }

@@ -27,6 +27,7 @@ sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/007_pending_regis
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/008_password_reset_code_attempts.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/009_registration_code_attempts.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/010_cart_sync_operations.sql
+sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/011_food_item_images.sql
 ```
 
 Thay tên instance nếu máy bạn khác. Dùng `-f 65001` để đọc dữ liệu tiếng Việt trong script seed bằng UTF-8. Có thể mở từng file trong SSMS và chạy theo thứ tự tương tự; kiểm tra kết quả từng script trước khi chạy tiếp. Script `001` và `006` không chạy lại trên database đã có bảng tương ứng.
@@ -38,6 +39,8 @@ Script `005_repair_unicode_seed_data.sql` chỉ dành cho database demo bị l�
 Flutter dùng SQLite trên thiết bị để lưu danh mục, các trang món và chi tiết món đã tải; khi mất mạng chỉ xem được dữ liệu từng tải trước đó. Giỏ được lưu riêng theo tài khoản, các thay đổi offline được xếp hàng và gửi qua API sau khi đăng nhập, khi mở lại ứng dụng hoặc khi ứng dụng đang mở và có mạng. Mỗi thay đổi có mã riêng để gửi lại không bị cộng trùng. Đặt hàng và thanh toán vẫn cần kết nối API. Nếu món không còn bán hoặc số lượng vượt giới hạn, màn giỏ hiển thị lỗi và cho phép bỏ thay đổi chưa đồng bộ sau khi xác nhận.
 
 Với database đang dùng, chạy migration `010_cart_sync_operations.sql` trước khi khởi động lại API. Dữ liệu cũ trong bảng giỏ offline phiên bản 1 không có thông tin chủ sở hữu nên không được tự gán cho tài khoản nào.
+
+Để dùng nhiều ảnh món trên database hiện có, chạy thêm `011_food_item_images.sql`; ảnh cũ vẫn được giữ làm ảnh chính.
 
 ## Cấu hình và chạy API
 

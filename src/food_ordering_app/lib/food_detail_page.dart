@@ -13,11 +13,13 @@ class FoodDetailPage extends StatefulWidget {
     this.loadFood,
     this.loadCart,
     this.addToCart,
+    this.loadImages,
   });
   final int foodId;
   final Future<MemberFoodItem> Function(int)? loadFood;
   final Future<Cart> Function()? loadCart;
   final Future<Cart> Function(int)? addToCart;
+  final Future<List<String>> Function(int)? loadImages;
   @override
   State<FoodDetailPage> createState() => _FoodDetailPageState();
 }
@@ -25,11 +27,18 @@ class FoodDetailPage extends StatefulWidget {
 class _FoodDetailPageState extends State<FoodDetailPage> {
   late Future<MemberFoodItem> _food;
   late Future<void> _cartReady;
+  late Future<List<String>> _images;
+  int _imageIndex = 0;
   bool _adding = false;
   @override
   void initState() {
     super.initState();
     _food = (widget.loadFood ?? MemberFoodApi.getById)(widget.foodId);
+    _images = widget.loadImages != null
+        ? widget.loadImages!(widget.foodId)
+        : widget.loadFood != null
+        ? Future.value([])
+        : MemberFoodApi.getImages(widget.foodId);
     _cartReady = _refreshCart();
   }
 
@@ -93,7 +102,42 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: FoodImage(imageUrl: x.imageUrl, size: 220)),
+              FutureBuilder<List<String>>(
+                future: _images,
+                builder: (context, snapshot) {
+                  final loaded = snapshot.data ?? [];
+                  final images = loaded.isNotEmpty
+                      ? loaded
+                      : (x.imageUrl == null ? <String>[] : [x.imageUrl!]);
+                  if (images.length <= 1)
+                    return Center(
+                      child: FoodImage(
+                        imageUrl: images.isEmpty ? null : images.first,
+                        size: 220,
+                      ),
+                    );
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 220,
+                        child: PageView.builder(
+                          itemCount: images.length,
+                          onPageChanged: (index) =>
+                              setState(() => _imageIndex = index),
+                          itemBuilder: (context, index) => Center(
+                            child: FoodImage(
+                              imageUrl: images[index],
+                              size: 220,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Ảnh ${_imageIndex + 1}/${images.length}'),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 20),
               Text(
                 x.name,

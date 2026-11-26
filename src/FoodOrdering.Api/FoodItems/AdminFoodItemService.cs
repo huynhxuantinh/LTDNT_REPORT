@@ -182,6 +182,8 @@ public sealed class AdminFoodItemService(FoodOrderingDbContext dbContext)
         }
 
         var imageUrl = foodItem.ImageUrl;
+        var extraImages = await dbContext.FoodItemImages.Where(x => x.FoodItemId == foodItemId).ToListAsync(cancellationToken);
+        dbContext.FoodItemImages.RemoveRange(extraImages);
         dbContext.FoodItems.Remove(foodItem);
         try { await dbContext.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateException error) when (error.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
