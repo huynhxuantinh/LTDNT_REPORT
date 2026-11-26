@@ -25,11 +25,17 @@ public sealed class MemberFoodService(FoodOrderingDbContext dbContext)
         PageRequest pageRequest,
         int? categoryId,
         string? search,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? excludeFoodItemId = null)
     {
         var page = pageRequest.ValidPage;
         var pageSize = pageRequest.ValidPageSize;
         var query = dbContext.FoodItems.AsNoTracking().Where(item => item.IsAvailable);
+
+        if (excludeFoodItemId.HasValue)
+        {
+            query = query.Where(item => item.FoodItemId != excludeFoodItemId.Value);
+        }
 
         if (categoryId is > 0)
         {

@@ -173,6 +173,12 @@ void main() {
           ],
           loadCart: () async =>
               const Cart(items: [], totalQuantity: 0, totalAmount: 0),
+          loadRelated: (_, _, _) async => const MemberFoodPage(
+            items: [],
+            page: 1,
+            totalItems: 0,
+            totalPages: 0,
+          ),
         ),
       ),
     );

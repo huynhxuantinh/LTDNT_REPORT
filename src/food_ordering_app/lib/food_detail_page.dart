@@ -5,6 +5,7 @@ import 'package:trek_bikes_app/cart_icon_button.dart';
 import 'package:trek_bikes_app/member_food_api.dart';
 import 'package:trek_bikes_app/food_image.dart';
 import 'package:trek_bikes_app/money_format.dart';
+import 'package:trek_bikes_app/related_foods_section.dart';
 
 class FoodDetailPage extends StatefulWidget {
   const FoodDetailPage({
@@ -14,12 +15,15 @@ class FoodDetailPage extends StatefulWidget {
     this.loadCart,
     this.addToCart,
     this.loadImages,
+    this.loadRelated,
   });
   final int foodId;
   final Future<MemberFoodItem> Function(int)? loadFood;
   final Future<Cart> Function()? loadCart;
   final Future<Cart> Function(int)? addToCart;
   final Future<List<String>> Function(int)? loadImages;
+  final Future<MemberFoodPage> Function(int foodId, int page, int pageSize)?
+  loadRelated;
   @override
   State<FoodDetailPage> createState() => _FoodDetailPageState();
 }
@@ -51,11 +55,12 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
     }
   }
 
-  Future<void> _add() async {
+  Future<void> _addFood(int foodId) async {
+    if (_adding) return;
     setState(() => _adding = true);
     try {
       await _cartReady;
-      final cart = await (widget.addToCart ?? CartApi.add)(widget.foodId);
+      final cart = await (widget.addToCart ?? CartApi.add)(foodId);
       cartCount.value = cart.totalQuantity;
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,9 +167,28 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _adding ? null : _add,
+                  onPressed: _adding ? null : () => _addFood(widget.foodId),
                   icon: const Icon(Icons.add_shopping_cart),
                   label: Text(_adding ? 'Đang thêm...' : 'Thêm vào giỏ'),
+                ),
+              ),
+              const SizedBox(height: 28),
+              RelatedFoodsSection(
+                foodId: widget.foodId,
+                loadRelated: widget.loadRelated,
+                onAdd: (food) => _addFood(food.foodItemId),
+                onOpen: (food) => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FoodDetailPage(
+                      foodId: food.foodItemId,
+                      loadFood: widget.loadFood,
+                      loadImages: widget.loadImages,
+                      loadRelated: widget.loadRelated,
+                      loadCart: widget.loadCart,
+                      addToCart: widget.addToCart,
+                    ),
+                  ),
                 ),
               ),
             ],

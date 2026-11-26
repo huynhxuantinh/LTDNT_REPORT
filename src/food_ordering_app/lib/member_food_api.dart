@@ -65,6 +65,48 @@ class MemberFoodPage {
 }
 
 class MemberFoodApi {
+  static Future<MemberFoodPage> getRelated({
+    required int foodId,
+    required int page,
+    required int pageSize,
+  }) async {
+    final cacheKey = 'related-food:$foodId:$page:$pageSize';
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/foods/$foodId/related')
+          .replace(queryParameters: {'page': '$page', 'pageSize': '$pageSize'});
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        throw const ApiException('Không thể tải món liên quan.');
+      }
+      final data =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      try {
+        await LocalDatabase.instance.saveResponse(cacheKey, data);
+      } catch (_) {
+        /* Cache is optional. */
+      }
+      return MemberFoodPage.fromJson(data);
+    } catch (error) {
+      if (!isNetworkFailure(error)) rethrow;
+      try {
+        final data = await LocalDatabase.instance.readResponse(cacheKey);
+        if (data is Map<String, dynamic>) {
+          final cached = MemberFoodPage.fromJson(data);
+          return MemberFoodPage(
+            items: cached.items,
+            page: cached.page,
+            totalItems: cached.totalItems,
+            totalPages: cached.totalPages,
+            isOffline: true,
+          );
+        }
+      } catch (_) {
+        /* No cached related-food page. */
+      }
+      throw const ApiException('Không thể tải món liên quan.');
+    }
+  }
+
   static Future<List<String>> getImages(int foodId) async {
     final cacheKey = 'food-images:$foodId';
     try {

@@ -15,8 +15,8 @@ public sealed class FoodsController(MemberFoodService foodService) : ControllerB
     {
         var item = await foodService.GetByIdAsync(foodItemId, cancellationToken);
         if (item is null) return NotFound();
-        var page = await foodService.GetAllAsync(pageRequest, item.CategoryId, null, cancellationToken);
-        return Ok(PagedResponse<MemberFoodItem>.Create(page.Data.Where(x => x.FoodItemId != foodItemId).ToList(), page.Meta.Page, page.Meta.PageSize, Math.Max(0, page.Meta.TotalItems - 1)));
+        var page = await foodService.GetAllAsync(pageRequest, item.CategoryId, null, cancellationToken, foodItemId);
+        return Ok(page);
     }
     [HttpGet("{foodItemId:int}")]
     public async Task<ActionResult<MemberFoodItem>> GetById(int foodItemId, CancellationToken cancellationToken)

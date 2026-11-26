@@ -25,6 +25,12 @@ void main() {
               const Cart(items: [], totalQuantity: 2, totalAmount: 0),
           addToCart: (_) async =>
               const Cart(items: [], totalQuantity: 3, totalAmount: 0),
+          loadRelated: (_, _, _) async => const MemberFoodPage(
+            items: [],
+            page: 1,
+            totalItems: 0,
+            totalPages: 0,
+          ),
         ),
       ),
     );
