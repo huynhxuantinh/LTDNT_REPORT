@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -96,10 +98,13 @@ class AdminUsersApi {
       'pageSize': '10',
       if (search.trim().isNotEmpty) 'search': search.trim(),
     };
-    final r = await _client.get(
-      Uri.parse('$_baseUrl/api/admin/users').replace(queryParameters: query),
-      headers: await _headers(),
-    );
+    final r = await _client
+        .get(
+          Uri.parse('$_baseUrl/api/admin/users')
+              .replace(queryParameters: query),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _check(r);
     return AdminUsersPageData.fromJson(
       jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>,
@@ -107,20 +112,24 @@ class AdminUsersApi {
   }
 
   Future<void> setRole(String id, String role) async {
-    final r = await _client.put(
-      Uri.parse('$_baseUrl/api/admin/users/$id/role'),
-      headers: await _headers(),
-      body: jsonEncode({'role': role}),
-    );
+    final r = await _client
+        .put(
+          Uri.parse('$_baseUrl/api/admin/users/$id/role'),
+          headers: await _headers(),
+          body: jsonEncode({'role': role}),
+        )
+        .timeout(apiRequestTimeout);
     _check(r);
   }
 
   Future<void> setActive(String id, bool active) async {
-    final r = await _client.put(
-      Uri.parse('$_baseUrl/api/admin/users/$id/active-status'),
-      headers: await _headers(),
-      body: jsonEncode({'isActive': active}),
-    );
+    final r = await _client
+        .put(
+          Uri.parse('$_baseUrl/api/admin/users/$id/active-status'),
+          headers: await _headers(),
+          body: jsonEncode({'isActive': active}),
+        )
+        .timeout(apiRequestTimeout);
     _check(r);
   }
 

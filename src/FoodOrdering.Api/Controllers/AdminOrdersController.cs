@@ -23,9 +23,12 @@ public sealed class AdminOrdersController(FoodOrderingDbContext db) : Controller
     [HttpPut("{orderId:long}/status")]
     public async Task<IActionResult> UpdateStatus(long orderId, UpdateOrderStatusRequest request, CancellationToken ct)
     {
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
         var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
         var current = order.OrderStatus!.Name;
+        if (request.Status == "Cancelled" && order.PaymentStatus == "Paid")
+            return Conflict(ApiErrorResponse.Create("paid_order_cannot_cancel", "Không thể hủy đơn đã thanh toán khi chưa có quy trình hoàn tiền."));
         var allowed = order.OrderType == "Delivery"
             ? new Dictionary<string, string[]> { ["Pending"]=["Confirmed","Cancelled"], ["Confirmed"]=["Preparing","Cancelled"], ["Preparing"]=["Delivering","Cancelled"], ["Delivering"]=["Completed","Cancelled"] }
             : new Dictionary<string, string[]> { ["Pending"]=["Confirmed","Cancelled"], ["Confirmed"]=["Preparing","Cancelled"], ["Preparing"]=["Completed","Cancelled"] };
@@ -33,7 +36,9 @@ public sealed class AdminOrdersController(FoodOrderingDbContext db) : Controller
         var status = await db.OrderStatuses.SingleOrDefaultAsync(x => x.Name == request.Status, ct);
         if (status is null) return BadRequest(ApiErrorResponse.Create("invalid_status", "Trạng thái không hợp lệ."));
         order.OrderStatusId = status.OrderStatusId; order.UpdatedAt = DateTime.UtcNow; db.OrderStatusHistories.Add(new FoodOrdering.Api.Models.OrderStatusHistory { OrderId = orderId, OrderStatusId = status.OrderStatusId, UpdatedByUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), CreatedAt = DateTime.UtcNow }); await db.SaveChangesAsync(ct);
-        if (order.OrderType == "DineIn" && request.Status is "Completed" or "Cancelled" && order.TableId is int tableId) { var table = await db.DiningTables.FindAsync([tableId], ct); if (table is not null) { table.Status = "Available"; table.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(ct); } }
+        if (request.Status is "Completed" or "Cancelled")
+            await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+        await tx.CommitAsync(ct);
         return Ok(new { orderId, status = request.Status });
     }
     [HttpGet]

@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -98,10 +100,12 @@ class FoodItemApi {
   static String get _baseUrl => ApiConfig.baseUrl;
 
   static Future<List<FoodPhoto>> getImages(int foodItemId) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .get(
+          Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
     return (jsonDecode(utf8.decode(response.bodyBytes)) as List)
         .map((value) => FoodPhoto.fromJson(value as Map<String, dynamic>))
@@ -120,7 +124,9 @@ class FoodItemApi {
           )
           ..headers.addAll(await _headers())
           ..files.add(_imagePart(bytes, name));
-    final response = await http.Response.fromStream(await request.send());
+    final response = await http.Response.fromStream(
+      await request.send().timeout(apiUploadTimeout),
+    ).timeout(apiUploadTimeout);
     _ensure(response, 200);
     return FoodPhoto.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -129,10 +135,12 @@ class FoodItemApi {
 
   static Future<void> deleteImage(int foodItemId, FoodPhoto photo) async {
     final part = photo.isCover ? 'cover' : '${photo.imageId}';
-    final response = await http.delete(
-      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images/$part'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .delete(
+          Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/images/$part'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 
@@ -147,11 +155,13 @@ class FoodItemApi {
     if (search != null && search.trim().isNotEmpty) {
       query['search'] = search.trim();
     }
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/admin/food-items')
-          .replace(queryParameters: query),
-      headers: await _headers(),
-    );
+    final response = await http
+        .get(
+          Uri.parse('$_baseUrl/api/admin/food-items')
+              .replace(queryParameters: query),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
     return AdminFoodPage.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -180,8 +190,9 @@ class FoodItemApi {
     request.fields['Price'] = price.toStringAsFixed(2);
     request.files.add(_imagePart(imageBytes, imageName));
 
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
+    final streamed = await request.send().timeout(apiUploadTimeout);
+    final response = await http.Response.fromStream(streamed)
+        .timeout(apiUploadTimeout);
     _ensure(response, 201);
     return AdminFoodItem.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -213,8 +224,9 @@ class FoodItemApi {
       request.files.add(_imagePart(imageBytes, imageName));
     }
 
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
+    final streamed = await request.send().timeout(apiUploadTimeout);
+    final response = await http.Response.fromStream(streamed)
+        .timeout(apiUploadTimeout);
     _ensure(response, 200);
     return AdminFoodItem.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -224,10 +236,12 @@ class FoodItemApi {
   /// Xóa cứng món ăn (nếu chưa có trong đơn hàng).
   /// Nếu đã có trong đơn hàng sẽ ném FoodHasOrdersException để UI hỏi ẩn món.
   static Future<void> delete(int foodItemId) async {
-    final response = await http.delete(
-      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .delete(
+          Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     if (response.statusCode == 204) return;
     if (response.statusCode == 409) {
       try {
@@ -253,18 +267,22 @@ class FoodItemApi {
 
   /// Ẩn món ăn (xóa mềm) khi món đã tồn tại trong đơn hàng cũ
   static Future<void> hide(int foodItemId) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/hide'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/hide'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
   static Future<void> restore(int foodItemId) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/restore'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/api/admin/food-items/$foodItemId/restore'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 

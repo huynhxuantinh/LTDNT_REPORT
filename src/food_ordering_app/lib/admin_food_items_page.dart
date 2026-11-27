@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -600,6 +601,11 @@ class _FoodItemEditorDialogState extends State<_FoodItemEditorDialog> {
           () => _error = _changed
               ? 'Đã lưu một phần. ${e.message} Bạn có thể thử lại.'
               : e.message,
+        );
+    } on TimeoutException {
+      if (mounted)
+        setState(
+          () => _error = 'Chưa xác nhận được kết quả. Hãy kiểm tra món ăn trước khi lưu lại.',
         );
     } catch (_) {
       if (mounted)

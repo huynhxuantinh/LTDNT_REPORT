@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace FoodOrdering.Api.Controllers;
 
 [Route("email")]
-[EnableRateLimiting("auth")]
+[EnableRateLimiting("auth-sensitive")]
 public sealed class EmailPagesController(EmailVerificationService verification, PasswordResetService reset, RegistrationService registration) : Controller
 {
     private IActionResult Page(string title, string content)

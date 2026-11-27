@@ -28,6 +28,7 @@ sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/008_password_rese
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/009_registration_code_attempts.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/010_cart_sync_operations.sql
 sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/011_food_item_images.sql
+sqlcmd -S '.\SQLEXPRESS' -E -b -f 65001 -i database/migrations/012_user_security_stamp.sql
 ```
 
 Thay tên instance nếu máy bạn khác. Dùng `-f 65001` để đọc dữ liệu tiếng Việt trong script seed bằng UTF-8. Có thể mở từng file trong SSMS và chạy theo thứ tự tương tự; kiểm tra kết quả từng script trước khi chạy tiếp. Script `001` và `006` không chạy lại trên database đã có bảng tương ứng.
@@ -41,6 +42,8 @@ Flutter dùng SQLite trên thiết bị để lưu danh mục, các trang món v
 Với database đang dùng, chạy migration `010_cart_sync_operations.sql` trước khi khởi động lại API. Dữ liệu cũ trong bảng giỏ offline phiên bản 1 không có thông tin chủ sở hữu nên không được tự gán cho tài khoản nào.
 
 Để dùng nhiều ảnh món trên database hiện có, chạy thêm `011_food_item_images.sql`; ảnh cũ vẫn được giữ làm ảnh chính.
+
+Chạy `012_user_security_stamp.sql` trước khi dùng phiên bản API kiểm tra quyền theo từng request. Sau khi cập nhật, access token cũ chưa có mã bảo mật sẽ bị từ chối; người dùng cần đăng nhập lại.
 
 ## Cấu hình và chạy API
 
@@ -62,14 +65,18 @@ Tính năng email cần cấu hình SMTP local (`Smtp:Host`, `Port`, `User`, `Pa
 
 Email chứa nút xác thực hoặc đặt lại mật khẩu. Cấu hình `EmailLinks:BaseUrl` trong `appsettings.Development.json` thành địa chỉ API mà trình duyệt mở email truy cập được: `http://localhost:5000` nếu mở trên máy API, hoặc địa chỉ LAN của máy API nếu mở trên điện thoại cùng mạng (chạy API với `--urls http://0.0.0.0:5000`). Với môi trường thật cần URL HTTPS. Mã trong email cũng có thể nhập trực tiếp trong ứng dụng.
 
+API giới hạn request xác thực theo từng nhóm: đăng nhập 60/phút/IP, đăng ký và khôi phục 30/phút/IP, làm mới token 300/phút/IP, đổi mật khẩu và đăng xuất 30/phút/tài khoản. Có thể điều chỉnh `AuthRateLimits:LoginPerMinute`, `SensitivePerMinute`, `RefreshPerMinute`, `SessionPerMinute` trong cấu hình server. Nếu dùng reverse proxy, phải cấu hình chuyển tiếp IP chỉ từ proxy tin cậy; nếu không, nhiều người dùng có thể bị tính chung một IP.
+
 ## Cấu hình VNPay Sandbox
 
-1. Sửa `src/FoodOrdering.Api/appsettings.json`, mục `VNPay`: thay `TmnCode` và `HashSecret` bằng thông tin VNPay cấp; giữ `BaseUrl` là `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`.
-2. Trên VNPay Sandbox Merchant Admin: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/user/login — điền **IPN URL** là `https://spectacle-surname-emphases.ngrok-free.dev/api/orders/vnpay-ipn`.
+1. Điền `VNPay:TmnCode` và `VNPay:HashSecret` do VNPay cấp vào `src/FoodOrdering.Api/appsettings.Development.json` (file này được Git bỏ qua), hoặc dùng biến môi trường `VNPay__TmnCode` và `VNPay__HashSecret`. Không đặt khóa thật trong `appsettings.json` hoặc file mẫu.
+2. Trên VNPay Sandbox Merchant Admin: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/user/login — điền **IPN URL** là địa chỉ HTTPS công khai của API, theo sau bởi `/api/orders/vnpay-ipn`.
 3. Chạy API ở cổng 5000, rồi mở PowerShell khác chạy: `ngrok http 5000`.
-4. Nếu ngrok hiện domain khác, thay domain đó trong IPN URL ở VNPay và trong `ReturnUrl` tại mục `VNPay` của `appsettings.json`; đường dẫn Return URL là `/api/orders/vnpay-return`. Khởi động lại API sau khi sửa.
+4. Điền địa chỉ ngrok vào IPN URL ở VNPay và `VNPay:ReturnUrl` trong cấu hình local; đường dẫn Return URL là `/api/orders/vnpay-return`. Khởi động lại API sau khi sửa.
 
-Không đưa `HashSecret` lên GitHub.
+Return URL phải là địa chỉ thiết bị chạy app truy cập được; `localhost` trên điện thoại hoặc emulator trỏ về chính thiết bị, không phải máy chạy API. Khi dùng ngrok, đặt URL HTTPS ngrok cho cả Return URL và IPN. Địa chỉ HTTPS này phải duy trì hoạt động trong lúc thanh toán; IPN phải được VNPay truy cập từ bên ngoài. Ứng dụng chỉ thông báo thành công sau khi API ghi nhận trạng thái `Paid`; nếu chưa ghi nhận, dùng nút kiểm tra lại.
+
+VNPay bị vô hiệu khi thiếu cấu hình hợp lệ hoặc dùng khóa mẫu cũ đã công khai. Không đưa `HashSecret` lên GitHub; nếu khóa từng bị lộ, hãy yêu cầu VNPay cấp lại khóa.
 
 ## Cấu hình và chạy Flutter
 
@@ -91,6 +98,13 @@ Copy `src/food_ordering_app/.env.example` thành `.env`, sau đó chọn một U
 - Điện thoại thật cùng Wi-Fi: chạy API với `dotnet run --urls http://0.0.0.0:5000`, rồi đặt `API_URL=http://<IPv4-LAN-của-máy>:5000`. Điện thoại và máy tính cần liên lạc được qua mạng; firewall phải cho phép cổng 5000.
 - Windows/Chrome chạy trên máy API: `API_URL=http://localhost:5000`.
 - Production: dùng HTTPS, ví dụ `API_URL=https://api.example.com`.
+
+### Chuẩn bị APK Android release
+
+- App Android dùng application ID `vn.foodordering.app`; cài bản này sẽ được Android xem là ứng dụng khác với bản cũ `com.example.trek_bikes_app`.
+- Cấu hình `API_URL` bằng HTTPS có thể truy cập từ điện thoại trước khi build release. HTTP chỉ được bật trong bản debug; bản release từ chối HTTP.
+- Tự tạo và lưu giữ keystore riêng: trong thư mục `src/food_ordering_app/android`, chạy `keytool -genkeypair -v -keystore release-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000` và nhập mật khẩu khi được hỏi. Sao lưu keystore và mật khẩu ở nơi an toàn; mất key sẽ không cập nhật được ứng dụng đã phát hành bằng key đó.
+- Sao chép `android/key.properties.example` thành `android/key.properties` và điền mật khẩu thực tế cùng đường dẫn keystore. Các file key và `key.properties` được Git bỏ qua. Chạy `flutter build apk --release` trong `src/food_ordering_app`; build release không dùng debug key.
 
 Android đã được cấp quyền Internet. HTTP cleartext chỉ phục vụ phát triển LAN; bản phát hành dùng HTTPS.
 

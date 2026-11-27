@@ -29,6 +29,7 @@ public sealed class JwtTokenService(JwtOptions options) : ITokenService
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role?.RoleName ?? "Member"),
+            new Claim("security_stamp", user.SecurityStamp.ToString()),
         };
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key));

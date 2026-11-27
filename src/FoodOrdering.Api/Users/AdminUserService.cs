@@ -93,6 +93,12 @@ public sealed class AdminUserService(FoodOrderingDbContext dbContext)
             return AdminUserResult<AdminUserListItem>.Failure("self_role_change_forbidden", "Admin không thể tự bỏ quyền Admin.");
         }
 
+        if (user.RoleId != role.RoleId)
+        {
+            user.SecurityStamp = Guid.NewGuid();
+            var tokens = await dbContext.RefreshTokens.Where(item => item.UserId == userId && item.RevokedAt == null).ToListAsync(cancellationToken);
+            foreach (var token in tokens) token.RevokedAt = DateTime.UtcNow;
+        }
         user.RoleId = role.RoleId;
         user.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -125,6 +131,7 @@ public sealed class AdminUserService(FoodOrderingDbContext dbContext)
             return AdminUserResult<AdminUserListItem>.Failure("user_not_found", "Không tìm thấy người dùng.");
         }
 
+        if (user.IsActive != request.IsActive) user.SecurityStamp = Guid.NewGuid();
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
         if (!request.IsActive)

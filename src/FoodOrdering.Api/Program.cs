@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 using FoodOrdering.Api.Auth;
 using FoodOrdering.Api.Categories;
 using FoodOrdering.Api.Carts;
@@ -60,15 +61,26 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
+    int Limit(string name, int fallback) => Math.Clamp(builder.Configuration.GetValue<int?>($"AuthRateLimits:{name}") ?? fallback, 1, 10000);
+    FixedWindowRateLimiterOptions Window(int limit) => new()
         {
-            PermitLimit = 10,
+            PermitLimit = limit,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
             AutoReplenishment = true,
-        }));
+        };
+    string Ip(HttpContext context) => context.Connection.RemoteIpAddress?.MapToIPv6().ToString() ?? "unknown";
+    string UserOrIp(HttpContext context) => context.User.FindFirstValue(ClaimTypes.NameIdentifier) is { Length: > 0 } id
+        ? $"user:{id}" : $"ip:{Ip(context)}";
+
+    options.AddPolicy("auth-login", context => RateLimitPartition.GetFixedWindowLimiter(
+        $"login:{Ip(context)}", _ => Window(Limit("LoginPerMinute", 60))));
+    options.AddPolicy("auth-sensitive", context => RateLimitPartition.GetFixedWindowLimiter(
+        $"sensitive:{Ip(context)}", _ => Window(Limit("SensitivePerMinute", 30))));
+    options.AddPolicy("auth-refresh", context => RateLimitPartition.GetFixedWindowLimiter(
+        $"refresh:{Ip(context)}", _ => Window(Limit("RefreshPerMinute", 300))));
+    options.AddPolicy("auth-session", context => RateLimitPartition.GetFixedWindowLimiter(
+        $"session:{UserOrIp(context)}", _ => Window(Limit("SessionPerMinute", 30))));
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -90,6 +102,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var db = context.HttpContext.RequestServices.GetRequiredService<FoodOrderingDbContext>();
+                if (!await AccessTokenValidator.IsCurrentAsync(context.Principal, db, context.HttpContext.RequestAborted))
+                    context.Fail("Phiên đăng nhập không còn hợp lệ.");
+            }
         };
     });
 builder.Services.AddAuthorization();

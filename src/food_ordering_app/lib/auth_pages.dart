@@ -91,9 +91,20 @@ class _LoginPageState extends State<LoginPage> {
       subtitle: 'Đăng nhập để đặt món và theo dõi đơn hàng của bạn.',
       icon: Icons.restaurant_menu_rounded,
       children: [
-        _emailField(_email),
+        TextFormField(
+          controller: _email,
+          decoration: const InputDecoration(
+            labelText: 'Email hoặc tài khoản demo',
+            prefixIcon: Icon(Icons.mail_outline),
+          ),
+          validator: _required,
+        ),
         const SizedBox(height: 16),
-        _passwordField(_password, 'Mật khẩu'),
+        _PasswordField(
+          controller: _password,
+          label: 'Mật khẩu',
+          validator: _required,
+        ),
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
@@ -826,7 +837,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       subtitle: 'Nhập mật khẩu hiện tại và chọn mật khẩu mới.',
       icon: Icons.lock_outline_rounded,
       children: [
-        _passwordField(_current, 'Mật khẩu hiện tại'),
+        _PasswordField(
+          controller: _current,
+          label: 'Mật khẩu hiện tại',
+          validator: _required,
+        ),
         const SizedBox(height: 16),
         _passwordField(_next, 'Mật khẩu mới'),
         const SizedBox(height: 8),

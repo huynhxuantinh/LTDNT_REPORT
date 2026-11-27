@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Màn hình nhúng WebView hiển thị cổng thanh toán VNPay trực tiếp trong app.
-/// Tự động lắng nghe URL chuyển hướng kết quả (vnpay-return) để đóng WebView và cập nhật trạng thái đơn hàng.
+/// Đợi trang trả về được tải trước khi quay lại màn kiểm tra trạng thái.
 class VnPayWebViewPage extends StatefulWidget {
   final int orderId;
   final String orderCode;
@@ -23,7 +23,17 @@ class VnPayWebViewPage extends StatefulWidget {
 class _VnPayWebViewPageState extends State<VnPayWebViewPage> {
   late final WebViewController _controller;
   int _loadingProgress = 0;
-  bool _isProcessingReturn = false;
+  bool _returnNavigationStarted = false;
+  bool _returnHandled = false;
+
+  bool _isReturnUrl(String url) =>
+      Uri.tryParse(url)?.path.endsWith('/api/orders/vnpay-return') ?? false;
+
+  void _finishReturn() {
+    if (!_returnNavigationStarted || _returnHandled || !mounted) return;
+    _returnHandled = true;
+    Navigator.pop(context);
+  }
 
   @override
   void initState() {
@@ -42,32 +52,18 @@ class _VnPayWebViewPageState extends State<VnPayWebViewPage> {
             }
           },
           onNavigationRequest: (NavigationRequest request) {
-            // Lắng nghe URL chuyển hướng sau khi thanh toán trên VNPay
-            if (request.url.contains('vnpay-return') || request.url.contains('vnp_ResponseCode')) {
-              _handleReturnUrl(request.url);
-            }
+            if (_isReturnUrl(request.url)) _returnNavigationStarted = true;
             return NavigationDecision.navigate;
+          },
+          onPageFinished: (url) {
+            if (_isReturnUrl(url)) _finishReturn();
+          },
+          onWebResourceError: (error) {
+            if (error.isForMainFrame == true) _finishReturn();
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.paymentUrl));
-  }
-
-  /// Xử lý kết quả trả về từ URL callback của VNPay
-  void _handleReturnUrl(String url) {
-    if (_isProcessingReturn) return;
-    _isProcessingReturn = true;
-
-    final uri = Uri.parse(url);
-    final responseCode = uri.queryParameters['vnp_ResponseCode'];
-    final isSuccess = responseCode == '00';
-
-    // Đợi 1.5 giây để người dùng kịp nhìn thông báo kết quả trả về từ cổng
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        Navigator.pop(context, isSuccess);
-      }
-    });
   }
 
   void _copyToClipboard(String text, String label) {
@@ -168,4 +164,3 @@ class _VnPayWebViewPageState extends State<VnPayWebViewPage> {
     );
   }
 }
-

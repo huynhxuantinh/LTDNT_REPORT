@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -31,10 +35,12 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
 
   Future<List<dynamic>> load() async {
     final token = await SessionHelper.accessToken;
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/api/staff/orders'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    final response = await http
+        .get(
+          Uri.parse('${ApiConfig.baseUrl}/api/staff/orders'),
+          headers: {'Authorization': 'Bearer $token'},
+        )
+        .timeout(apiRequestTimeout);
     if (response.statusCode != 200) throw Exception('Không tải được đơn hàng');
     return jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
   }
@@ -43,16 +49,28 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
     setState(() => busy = true);
     try {
       final token = await SessionHelper.accessToken;
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/$id/status'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'status': status}),
-      );
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/$id/status'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'status': status}),
+          )
+          .timeout(apiRequestTimeout);
       if (response.statusCode != 200) throw Exception('Cập nhật thất bại');
       if (mounted) setState(reload);
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chưa xác nhận được kết quả. Hãy tải lại đơn trước khi thử lại.',
+            ),
+          ),
+        );
+      }
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +191,9 @@ class _StaffOrdersPageState extends State<StaffOrdersPage> {
                                 : () => action(id, status: next),
                             child: Text('Chuyển: ${orderStatusLabel(next)}'),
                           ),
-                        if (!isDineIn && next != null)
+                        if (!isDineIn &&
+                            next != null &&
+                            order['paymentStatus'] != 'Paid')
                           TextButton(
                             onPressed: busy
                                 ? null

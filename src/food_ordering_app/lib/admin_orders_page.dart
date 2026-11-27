@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -53,11 +57,13 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       if (_from != null) 'fromDate': _date(_from!),
       if (_to != null) 'toDate': _date(_to!),
     };
-    final response = await _client.get(
-      Uri.parse('${ApiConfig.baseUrl}/api/admin/orders')
-          .replace(queryParameters: params),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    final response = await _client
+        .get(
+          Uri.parse('${ApiConfig.baseUrl}/api/admin/orders')
+              .replace(queryParameters: params),
+          headers: {'Authorization': 'Bearer $token'},
+        )
+        .timeout(apiRequestTimeout);
     if (response.statusCode != 200) throw Exception('Không tải được đơn hàng');
     return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
   }
@@ -99,16 +105,18 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     try {
       final token =
           await (widget.tokenReader?.call() ?? SessionHelper.accessToken);
-      final response = await _client.put(
-        Uri.parse(
-          '${ApiConfig.baseUrl}/api/admin/orders/${order['orderId']}/status',
-        ),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'status': status}),
-      );
+      final response = await _client
+          .put(
+            Uri.parse(
+              '${ApiConfig.baseUrl}/api/admin/orders/${order['orderId']}/status',
+            ),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'status': status}),
+          )
+          .timeout(apiRequestTimeout);
       if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,6 +138,16 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
         if (response.statusCode == 409) setState(_reload);
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chưa xác nhận được kết quả. Hãy tải lại đơn trước khi thử lại.',
+            ),
+          ),
+        );
       }
     } catch (_) {
       if (mounted)
@@ -286,15 +304,17 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                                                 'Chuyển: ${_statusLabel(next)}',
                                               ),
                                             ),
-                                            TextButton(
-                                              onPressed: _updating
-                                                  ? null
-                                                  : () => _updateStatus(
-                                                      order,
-                                                      'Cancelled',
-                                                    ),
-                                              child: const Text('Hủy đơn'),
-                                            ),
+                                            if (order['paymentStatus'] !=
+                                                'Paid')
+                                              TextButton(
+                                                onPressed: _updating
+                                                    ? null
+                                                    : () => _updateStatus(
+                                                        order,
+                                                        'Cancelled',
+                                                      ),
+                                                child: const Text('Hủy đơn'),
+                                              ),
                                           ],
                                         ),
                                       ),

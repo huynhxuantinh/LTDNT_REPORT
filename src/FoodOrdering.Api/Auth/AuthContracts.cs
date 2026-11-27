@@ -8,11 +8,11 @@ public sealed record RegisterRequest(
     [param: Required, StringLength(128, MinimumLength = 8)] string Password);
 
 public sealed record LoginRequest(
-    [param: Required, EmailAddress, StringLength(254)] string Email,
-    [param: Required, StringLength(128, MinimumLength = 8)] string Password);
+    [param: Required, StringLength(254)] string Email,
+    [param: Required, StringLength(128)] string Password);
 
 public sealed record ChangePasswordRequest(
-    [param: Required, StringLength(128, MinimumLength = 8)] string CurrentPassword,
+    [param: Required, StringLength(128)] string CurrentPassword,
     [param: Required, StringLength(128, MinimumLength = 8)] string NewPassword);
 
 public sealed record LogoutRequest([param: Required, StringLength(512, MinimumLength = 32)] string RefreshToken);

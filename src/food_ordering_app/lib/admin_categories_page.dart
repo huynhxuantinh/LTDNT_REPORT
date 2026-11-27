@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -75,6 +76,10 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
           } on ApiException catch (error) {
             throw ApiException(
               'Đã lưu thông tin danh mục nhưng chưa cập nhật ảnh: ${error.message}',
+            );
+          } on TimeoutException {
+            throw const ApiException(
+              'Ảnh có thể đã được cập nhật. Hãy kiểm tra lại danh mục trước khi thử lại.',
             );
           } catch (_) {
             throw const ApiException(
@@ -262,6 +267,11 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
+    } on TimeoutException {
+      if (mounted)
+        setState(
+          () => _error = 'Chưa xác nhận được kết quả. Hãy kiểm tra danh mục trước khi lưu lại.',
+        );
     } catch (_) {
       if (mounted) {
         setState(

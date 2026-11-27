@@ -146,20 +146,22 @@
 
 - [x] Admin CRUD bàn ăn, không xóa bàn đang có đơn mở.
 - [x] Staff xem danh sách bàn, chỉ chọn bàn `Available` cho `DineIn`.
-- [x] Staff tạo đơn `DineIn`, thêm/sửa/xóa món.
+- [x] Staff tạo đơn `DineIn`, thêm/sửa/xóa món trước khi tạo.
+- [x] Staff sửa món sau khi tạo đơn chưa thanh toán; API kiểm tra xung đột và trạng thái thanh toán.
 - [x] Khi tạo `DineIn`, bàn chuyển `Occupied` trong transaction.
 - [x] Staff tạo đơn `TakeAway`.
 - [x] Staff xác nhận thanh toán tiền mặt cho đơn offline.
 - [x] Khi thanh toán/hoàn thành/hủy DineIn, bàn trở lại `Available`.
 - [x] Luồng trạng thái Delivery: `Pending` → `Confirmed` → `Preparing` → `Delivering` → `Completed`/`Cancelled`.
 - [x] Luồng trạng thái DineIn/TakeAway: `Pending` → `Confirmed` → `Preparing` → `Completed`/`Cancelled`.
+- [x] Theo yêu cầu giao diện đã chọn: đơn DineIn của Staff chỉ hiện chi tiết và thanh toán; thao tác chuyển trạng thái/hủy do Admin thực hiện.
 - [ ] Flutter Staff: màn chọn loại đơn, chọn bàn, tạo đơn và xử lý đơn.
 - [x] Test đồng thời: không cho hai Staff chọn cùng một bàn.
 
 ## Giai đoạn 9 — Điểm cộng nâng cao
 
-- [ ] Xác thực email.
-- [ ] Quên mật khẩu qua email.
+- [x] Xác thực email.
+- [x] Quên mật khẩu qua email.
 - [x] VietQR: tạo QR, lưu mã giao dịch, đối soát trạng thái thanh toán.
 - [x] VNPay sandbox: tạo URL thanh toán, xác thực chữ ký callback, xử lý callback idempotent.
 

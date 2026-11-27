@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:trek_bikes_app/api_config.dart';
 import 'package:trek_bikes_app/app_states.dart';
 import 'package:trek_bikes_app/money_format.dart';
 import 'package:trek_bikes_app/session_helper.dart';
+import 'package:trek_bikes_app/staff_edit_order_page.dart';
 import 'package:trek_bikes_app/staff_payment_page.dart';
 import 'package:trek_bikes_app/vietnamese_labels.dart';
 
@@ -35,10 +38,12 @@ class _StaffOrderDetailPageState extends State<StaffOrderDetailPage> {
   Future<Map<String, dynamic>> _load() async {
     if (widget.loadOrder != null) return widget.loadOrder!(widget.orderId);
     final token = await SessionHelper.accessToken;
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/${widget.orderId}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    final response = await http
+        .get(
+          Uri.parse('${ApiConfig.baseUrl}/api/staff/orders/${widget.orderId}'),
+          headers: {'Authorization': 'Bearer $token'},
+        )
+        .timeout(apiRequestTimeout);
     if (response.statusCode != 200) throw Exception('Không tải được đơn hàng.');
     return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
   }
@@ -147,6 +152,27 @@ class _StaffOrderDetailPageState extends State<StaffOrderDetailPage> {
               ),
             ),
             const SizedBox(height: 16),
+            if (order['paymentStatus'] == 'Unpaid' &&
+                order['status'] != 'Cancelled' &&
+                order['status'] != 'Completed' &&
+                items.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StaffEditOrderPage(
+                        orderId: widget.orderId,
+                        items: items,
+                      ),
+                    ),
+                  );
+                  if (changed == true && mounted)
+                    setState(() => _order = _load());
+                },
+                icon: const Icon(Icons.edit),
+                label: const Text('Sửa món trong đơn'),
+              ),
             FilledButton.icon(
               onPressed:
                   order['status'] == 'Cancelled' &&

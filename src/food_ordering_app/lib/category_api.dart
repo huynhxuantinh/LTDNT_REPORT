@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -51,7 +53,9 @@ class CategoryApi {
   }
 
   static Future<List<AdminCategory>> getAll() async {
-    final response = await http.get(_uri(), headers: await _headers());
+    final response = await http
+        .get(_uri(), headers: await _headers())
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
     final data = jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
     return data
@@ -63,11 +67,13 @@ class CategoryApi {
     required String name,
     String? description,
   }) async {
-    final response = await http.post(
-      _uri(),
-      headers: await _headers(),
-      body: jsonEncode({'name': name, 'description': description}),
-    );
+    final response = await http
+        .post(
+          _uri(),
+          headers: await _headers(),
+          body: jsonEncode({'name': name, 'description': description}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 201);
     return AdminCategory.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -79,11 +85,13 @@ class CategoryApi {
     required String name,
     String? description,
   }) async {
-    final response = await http.put(
-      _uri('$categoryId'),
-      headers: await _headers(),
-      body: jsonEncode({'name': name, 'description': description}),
-    );
+    final response = await http
+        .put(
+          _uri('$categoryId'),
+          headers: await _headers(),
+          body: jsonEncode({'name': name, 'description': description}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
     return AdminCategory.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -91,10 +99,9 @@ class CategoryApi {
   }
 
   static Future<void> delete(int categoryId) async {
-    final response = await http.delete(
-      _uri('$categoryId'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .delete(_uri('$categoryId'), headers: await _headers())
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 
@@ -127,7 +134,9 @@ class CategoryApi {
               contentType: type,
             ),
           );
-    final response = await http.Response.fromStream(await request.send());
+    final response = await http.Response.fromStream(
+      await request.send().timeout(apiUploadTimeout),
+    ).timeout(apiUploadTimeout);
     _ensure(response, 200);
     return (jsonDecode(utf8.decode(response.bodyBytes))
             as Map<String, dynamic>)['imageUrl']
@@ -135,10 +144,12 @@ class CategoryApi {
   }
 
   static Future<void> deleteImage(int categoryId) async {
-    final response = await http.delete(
-      Uri.parse('${_uri('$categoryId')}/image'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .delete(
+          Uri.parse('${_uri('$categoryId')}/image'),
+          headers: await _headers(),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 

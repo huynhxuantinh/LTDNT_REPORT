@@ -38,5 +38,6 @@ public sealed record VietQrPaymentDto(
     string AccountName,
     string TransferContent,
     string QrImageUrl,
-    string PaymentStatus);
+    string PaymentStatus,
+    bool DemoEnabled);
 

@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -67,10 +71,12 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
 
   Future<List<dynamic>> _tables() async {
     final t = await SessionHelper.accessToken;
-    final r = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/api/staff/tables/available'),
-      headers: {'Authorization': 'Bearer $t'},
-    );
+    final r = await http
+        .get(
+          Uri.parse('${ApiConfig.baseUrl}/api/staff/tables/available'),
+          headers: {'Authorization': 'Bearer $t'},
+        )
+        .timeout(apiRequestTimeout);
     if (r.statusCode != 200) throw Exception('Không tải được bàn');
     return jsonDecode(utf8.decode(r.bodyBytes));
   }
@@ -79,21 +85,23 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
     setState(() => saving = true);
     try {
       final t = await SessionHelper.accessToken;
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/staff/orders'),
-        headers: {
-          'Authorization': 'Bearer $t',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'orderType': type,
-          'tableId': type == 'DineIn' ? tableId : null,
-          'receiverName': _customerController.text.trim(),
-          'items': items.entries
-              .map((x) => {'foodItemId': x.key, 'quantity': x.value})
-              .toList(),
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/staff/orders'),
+            headers: {
+              'Authorization': 'Bearer $t',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'orderType': type,
+              'tableId': type == 'DineIn' ? tableId : null,
+              'receiverName': _customerController.text.trim(),
+              'items': items.entries
+                  .map((x) => {'foodItemId': x.key, 'quantity': x.value})
+                  .toList(),
+            }),
+          )
+          .timeout(apiRequestTimeout);
       if (response.statusCode != 200 && response.statusCode != 201)
         throw Exception('Tạo đơn thất bại');
       if (mounted) {
@@ -154,6 +162,16 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
               .showSnackBar(const SnackBar(content: Text('Đã tạo đơn.')));
         }
       }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chưa xác nhận được kết quả. Hãy kiểm tra danh sách đơn trước khi tạo lại.',
+            ),
+          ),
+        );
+      }
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -196,19 +214,7 @@ class _StaffOrderPageState extends State<StaffOrderPage> {
               onChanged: (v) => setState(() => tableId = v),
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: TextField(
-            controller: _customerController,
-            maxLength: 120,
-            decoration: const InputDecoration(
-              labelText: 'Tên khách (không bắt buộc)',
-              prefixIcon: Icon(Icons.person_outline),
-              counterText: '',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
+
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: TextField(

@@ -102,10 +102,10 @@ void main() {
         expect(find.text('35.000 đ × 2'), findsOneWidget);
         expect(find.text('Tổng cộng: 70.000 đ'), findsOneWidget);
         expect(find.text('Trạng thái'), findsNothing);
-      final payment = find.widgetWithText(FilledButton, 'Thanh toán');
-      await tester.ensureVisible(payment);
-      await tester.pumpAndSettle();
-      await tester.tap(payment);
+        final payment = find.widgetWithText(FilledButton, 'Thanh toán');
+        await tester.scrollUntilVisible(payment, 200);
+        await tester.pumpAndSettle();
+        await tester.tap(payment);
         await tester.pumpAndSettle();
         expect(find.text('Thanh toán đơn tại quán'), findsOneWidget);
         expect(find.text('70.000 đ'), findsOneWidget);

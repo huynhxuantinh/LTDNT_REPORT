@@ -8,7 +8,41 @@ import 'package:http/testing.dart';
 import 'package:trek_bikes_app/admin_orders_page.dart';
 
 void main() {
-  setUp(() => dotenv.loadFromString(envString: 'API_URL=http://localhost:5000'));
+  setUp(
+    () => dotenv.loadFromString(envString: 'API_URL=http://localhost:5000'),
+  );
+  testWidgets('paid order does not offer cancellation', (tester) async {
+    final client = MockClient(
+      (request) async => http.Response(
+        jsonEncode({
+          'data': [
+            {
+              'orderId': 1,
+              'orderCode': 'DH1',
+              'orderType': 'Delivery',
+              'status': 'Pending',
+              'paymentStatus': 'Paid',
+              'totalAmount': 10,
+            },
+          ],
+          'meta': {'totalPages': 1},
+        }),
+        200,
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminOrdersPage(
+          client: client,
+          tokenReader: () async => 'test-token',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Hủy đơn'), findsNothing);
+    expect(find.text('Chuyển: Đã xác nhận'), findsOneWidget);
+    client.close();
+  });
   testWidgets('delivery order updates via API after confirmation', (
     tester,
   ) async {

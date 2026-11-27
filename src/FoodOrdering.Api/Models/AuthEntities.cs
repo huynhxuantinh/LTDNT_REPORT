@@ -18,6 +18,7 @@ public sealed class User
     public Role? Role { get; set; }
     public bool IsEmailVerified { get; set; }
     public bool IsActive { get; set; }
+    public Guid SecurityStamp { get; set; } = Guid.NewGuid();
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

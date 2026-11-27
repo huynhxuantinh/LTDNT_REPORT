@@ -4,6 +4,9 @@ reference/
 # Secrets và build output
 **/.env
 **/appsettings.Development.json
+**/key.properties
+**/*.jks
+**/*.keystore
 **/bin/
 **/obj/
 .dart_tool/

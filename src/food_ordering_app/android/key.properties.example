@@ -1,0 +1,4 @@
+storeFile=release-key.jks
+storePassword=DIEN_MAT_KHAU_KEYSTORE
+keyAlias=upload
+keyPassword=DIEN_MAT_KHAU_KEY

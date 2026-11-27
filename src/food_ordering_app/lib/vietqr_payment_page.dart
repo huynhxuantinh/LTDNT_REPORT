@@ -363,23 +363,25 @@ class _VietQrPaymentPageState extends State<VietQrPaymentPage> {
                             label: const Text('Kiểm tra'),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: confirming ? null : _simulateConfirm,
-                            icon: confirming
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.check),
-                            label: const Text('Đã chuyển (Demo)'),
+                        if (info!.demoEnabled) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: confirming ? null : _simulateConfirm,
+                              icon: confirming
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.check),
+                              label: const Text('Đã chuyển (Demo)'),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ] else ...[

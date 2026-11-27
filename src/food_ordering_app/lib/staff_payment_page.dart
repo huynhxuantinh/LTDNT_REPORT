@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -61,12 +63,14 @@ class _StaffPaymentPageState extends State<StaffPaymentPage> {
     setState(() => busy = true);
     try {
       final token = await SessionHelper.accessToken;
-      final response = await http.post(
-        Uri.parse(
-          '${ApiConfig.baseUrl}/api/orders/${widget.orderId}/collect-cash',
-        ),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      final response = await http
+          .post(
+            Uri.parse(
+              '${ApiConfig.baseUrl}/api/orders/${widget.orderId}/collect-cash',
+            ),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(apiRequestTimeout);
       if (response.statusCode != 200) {
         final body = jsonDecode(utf8.decode(response.bodyBytes));
         final message = body is Map && body['error'] is Map

@@ -9,6 +9,15 @@ namespace FoodOrdering.Api.Common;
 /// </summary>
 public static class VnPayHelper
 {
+    // Reject the previously published sample even if copied into local settings.
+    private const string PublishedSampleDigest = "24FBD20F2687A39FF7E91BFCEED79AAC74303CC7F61B07FF026D0ADB2D2F95AB";
+
+    public static bool IsUsableSecret(string? secret)
+    {
+        if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32 || secret != secret.Trim()) return false;
+        var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret)));
+        return !string.Equals(digest, PublishedSampleDigest, StringComparison.Ordinal);
+    }
     /// <summary>
     /// Tạo URL thanh toán VNPay kèm chữ ký bảo mật.
     /// </summary>
@@ -69,6 +78,7 @@ public static class VnPayHelper
     /// </summary>
     public static bool ValidateSignature(IDictionary<string, string> queryParams, string hashSecret)
     {
+        if (!IsUsableSecret(hashSecret)) return false;
         if (!queryParams.TryGetValue("vnp_SecureHash", out var secureHash) || string.IsNullOrEmpty(secureHash))
         {
             return false;

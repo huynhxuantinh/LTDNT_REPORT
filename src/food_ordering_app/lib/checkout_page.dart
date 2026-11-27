@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:trek_bikes_app/cart_api.dart';
 import 'package:trek_bikes_app/vietqr_payment_page.dart';
@@ -97,6 +99,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
       } else if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chưa xác nhận được kết quả. Hãy kiểm tra đơn hàng trước khi đặt lại.',
+            ),
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {

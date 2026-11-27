@@ -89,6 +89,7 @@ public sealed class AdminFoodItemsController(AdminFoodItemService foodItemServic
         CancellationToken cancellationToken)
     {
         string? newImageUrl = null;
+        var imageSavedToDatabase = false;
         try
         {
             if (request.Image is not null)
@@ -102,11 +103,12 @@ public sealed class AdminFoodItemsController(AdminFoodItemService foodItemServic
                 cancellationToken);
             if (result.IsSuccess)
             {
-                await imageStorage.DeleteAsync(result.Value!.PreviousImageUrl, cancellationToken);
+                imageSavedToDatabase = true;
+                await TryDeleteImageAsync(result.Value!.PreviousImageUrl);
                 return Ok(result.Value.Item);
             }
 
-            await imageStorage.DeleteAsync(newImageUrl, cancellationToken);
+            await TryDeleteImageAsync(newImageUrl);
             return result.ErrorCode == "food_not_found" || result.ErrorCode == "category_not_found"
                 ? NotFound(ApiErrorResponse.Create(result.ErrorCode!, result.Error!))
                 : Conflict(ApiErrorResponse.Create(result.ErrorCode!, result.Error!));
@@ -117,9 +119,16 @@ public sealed class AdminFoodItemsController(AdminFoodItemService foodItemServic
         }
         catch
         {
-            await imageStorage.DeleteAsync(newImageUrl, cancellationToken);
+            if (!imageSavedToDatabase) await TryDeleteImageAsync(newImageUrl);
             throw;
         }
+    }
+
+    private async Task TryDeleteImageAsync(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl)) return;
+        try { await imageStorage.DeleteAsync(imageUrl, CancellationToken.None); }
+        catch (Exception error) { logger.LogWarning(error, "Không thể dọn ảnh món ăn {ImageUrl}.", imageUrl); }
     }
 
     [HttpDelete("{foodItemId:int}")]

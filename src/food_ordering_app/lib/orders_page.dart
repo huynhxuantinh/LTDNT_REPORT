@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,10 +14,12 @@ import 'package:trek_bikes_app/vietnamese_labels.dart';
 
 Future<dynamic> _load(String path) async {
   final token = await SessionHelper.accessToken;
-  final response = await http.get(
-    Uri.parse('${ApiConfig.baseUrl}/api/orders$path'),
-    headers: {'Authorization': 'Bearer $token'},
-  );
+  final response = await http
+      .get(
+        Uri.parse('${ApiConfig.baseUrl}/api/orders$path'),
+        headers: {'Authorization': 'Bearer $token'},
+      )
+      .timeout(apiRequestTimeout);
   if (response.statusCode != 200) throw Exception('Không tải được đơn hàng');
   return jsonDecode(utf8.decode(response.bodyBytes));
 }
@@ -339,7 +343,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ],
               ),
             ),
-            if (!isPaid)
+            if (!isPaid && data['status'] != 'Cancelled')
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),

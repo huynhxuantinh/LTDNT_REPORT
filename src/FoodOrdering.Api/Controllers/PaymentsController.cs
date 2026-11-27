@@ -16,10 +16,14 @@ namespace FoodOrdering.Api.Controllers;
 public sealed class PaymentsController(
     FoodOrderingDbContext db,
     VietQrOptions vietQrOptions,
-    VnPayOptions vnPayOptions) : ControllerBase
+    VnPayOptions vnPayOptions,
+    IWebHostEnvironment environment,
+    ILogger<PaymentsController> logger) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     private bool IsStaffOrAdmin => User.IsInRole("Admin") || User.IsInRole("Staff");
+    private static bool IsCancelled(FoodOrder order) => order.OrderStatus?.Name == "Cancelled";
+    private IActionResult CancelledOrder() => Conflict(ApiErrorResponse.Create("order_cancelled", "Đơn hàng đã hủy, không thể thanh toán."));
 
     private static IActionResult VnPayIpnResponse(string rspCode, string message) =>
         new JsonResult(
@@ -36,22 +40,19 @@ public sealed class PaymentsController(
     [HttpPost("{orderId:long}/collect-cash"), Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> CollectCash(long orderId, CancellationToken ct)
     {
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        // Lock the order before checking its payment status. A second collector
+        // waits for this transaction, then sees the committed Paid status.
+        var order = await db.Orders
+            .FromSqlInterpolated($"SELECT * FROM dbo.Orders WITH (UPDLOCK, HOLDLOCK) WHERE OrderId = {orderId}")
+            .Include(x => x.OrderStatus)
+            .SingleOrDefaultAsync(ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
+        if (IsCancelled(order)) return CancelledOrder();
         if (order.PaymentStatus == "Paid") return Conflict(ApiErrorResponse.Create("order_already_paid", "Đơn hàng đã thanh toán."));
 
         order.PaymentStatus = "Paid";
         order.UpdatedAt = DateTime.UtcNow;
-
-        if (order.OrderType == "DineIn" && order.TableId is int tableId)
-        {
-            var table = await db.DiningTables.FindAsync([tableId], ct);
-            if (table is not null)
-            {
-                table.Status = "Available";
-                table.UpdatedAt = DateTime.UtcNow;
-            }
-        }
 
         db.Payments.Add(new Payment
         {
@@ -64,6 +65,8 @@ public sealed class PaymentsController(
         });
 
         await db.SaveChangesAsync(ct);
+        await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+        await tx.CommitAsync(ct);
         return Ok(new { orderId, paymentStatus = order.PaymentStatus });
     }
 
@@ -77,13 +80,15 @@ public sealed class PaymentsController(
     [HttpGet("{orderId:long}/vietqr"), Authorize]
     public async Task<IActionResult> GetVietQr(long orderId, CancellationToken ct)
     {
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
 
         if (!IsStaffOrAdmin && order.UserId != CurrentUserId)
         {
             return Forbid();
         }
+        if (IsCancelled(order)) return CancelledOrder();
 
         var transferContent = order.OrderCode;
         var amount = (long)Math.Round(order.TotalAmount, MidpointRounding.AwayFromZero);
@@ -112,6 +117,8 @@ public sealed class PaymentsController(
 
         await db.SaveChangesAsync(ct);
 
+        await tx.CommitAsync(ct);
+
         var dto = new VietQrPaymentDto(
             order.OrderId,
             order.OrderCode,
@@ -121,7 +128,8 @@ public sealed class PaymentsController(
             vietQrOptions.AccountName,
             transferContent,
             qrImageUrl,
-            order.PaymentStatus);
+            order.PaymentStatus,
+            environment.IsDevelopment());
 
         return Ok(dto);
     }
@@ -132,13 +140,17 @@ public sealed class PaymentsController(
     [HttpPost("{orderId:long}/vietqr/confirm"), Authorize]
     public async Task<IActionResult> ConfirmVietQr(long orderId, CancellationToken ct)
     {
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (!environment.IsDevelopment()) return NotFound();
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
 
         if (!IsStaffOrAdmin && order.UserId != CurrentUserId)
         {
             return Forbid();
         }
+
+        if (IsCancelled(order)) return CancelledOrder();
 
         if (order.PaymentStatus == "Paid")
         {
@@ -148,16 +160,6 @@ public sealed class PaymentsController(
         var now = DateTime.UtcNow;
         order.PaymentStatus = "Paid";
         order.UpdatedAt = now;
-
-        if (order.OrderType == "DineIn" && order.TableId is int tableId)
-        {
-            var table = await db.DiningTables.FindAsync([tableId], ct);
-            if (table is not null)
-            {
-                table.Status = "Available";
-                table.UpdatedAt = now;
-            }
-        }
 
         var payment = await db.Payments.FirstOrDefaultAsync(p => p.OrderId == orderId && p.Method == "VietQR", ct);
         if (payment is null)
@@ -179,6 +181,8 @@ public sealed class PaymentsController(
         }
 
         await db.SaveChangesAsync(ct);
+        await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+        await tx.CommitAsync(ct);
         return Ok(new { orderId, paymentStatus = order.PaymentStatus, paidAt = now });
     }
 
@@ -192,13 +196,20 @@ public sealed class PaymentsController(
     [HttpGet("{orderId:long}/vnpay"), Authorize]
     public async Task<IActionResult> GetVnPayUrl(long orderId, CancellationToken ct)
     {
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (!vnPayOptions.IsConfigured)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiErrorResponse.Create("vnpay_unavailable", "VNPay chưa được cấu hình an toàn."));
+        if (!vnPayOptions.HasUsableReturnUrl || (!environment.IsDevelopment() && !vnPayOptions.ReturnUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiErrorResponse.Create("vnpay_return_url_invalid", "Địa chỉ trả về VNPay không hợp lệ hoặc không thể truy cập từ thiết bị."));
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
 
         if (!IsStaffOrAdmin && order.UserId != CurrentUserId)
         {
             return Forbid();
         }
+
+        if (IsCancelled(order)) return CancelledOrder();
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
         var paymentUrl = VnPayHelper.CreatePaymentUrl(vnPayOptions, order.OrderId, order.OrderCode, order.TotalAmount, ipAddress);
@@ -227,12 +238,15 @@ public sealed class PaymentsController(
 
         await db.SaveChangesAsync(ct);
 
+        await tx.CommitAsync(ct);
+
         var dto = new VnPayPaymentDto(
             order.OrderId,
             order.OrderCode,
             order.TotalAmount,
             paymentUrl,
-            order.PaymentStatus);
+            order.PaymentStatus,
+            environment.IsDevelopment());
 
         return Ok(dto);
     }
@@ -243,6 +257,7 @@ public sealed class PaymentsController(
     [HttpGet("vnpay-ipn"), AllowAnonymous]
     public async Task<IActionResult> VnPayIpn(CancellationToken ct)
     {
+        if (!vnPayOptions.IsConfigured) return VnPayIpnResponse("99", "Service unavailable");
         var queryParams = HttpContext.Request.Query
             .Where(x => x.Key.StartsWith("vnp_", StringComparison.Ordinal))
             .ToDictionary(x => x.Key, x => x.Value.ToString(), StringComparer.Ordinal);
@@ -264,10 +279,17 @@ public sealed class PaymentsController(
             return VnPayIpnResponse("01", "Order not found");
         }
 
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null)
         {
             return VnPayIpnResponse("01", "Order not found");
+        }
+
+        if (IsCancelled(order))
+        {
+            logger.LogWarning("VNPay IPN received for cancelled order {OrderId}; manual reconciliation required.", orderId);
+            return VnPayIpnResponse("99", "Order cancelled; manual reconciliation required");
         }
 
         if (!queryParams.TryGetValue("vnp_Amount", out var amountText)
@@ -316,18 +338,11 @@ public sealed class PaymentsController(
             order.PaymentStatus = "Paid";
             order.UpdatedAt = now;
 
-            if (order.OrderType == "DineIn" && order.TableId is int tableId)
-            {
-                var table = await db.DiningTables.FindAsync([tableId], ct);
-                if (table is not null)
-                {
-                    table.Status = "Available";
-                    table.UpdatedAt = now;
-                }
-            }
         }
 
         await db.SaveChangesAsync(ct);
+        if (isSuccess) await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+        await tx.CommitAsync(ct);
         return VnPayIpnResponse("00", "Confirm Success");
     }
 
@@ -338,6 +353,8 @@ public sealed class PaymentsController(
     [HttpGet("vnpay-return"), AllowAnonymous]
     public async Task<IActionResult> VnPayReturn(CancellationToken ct)
     {
+        if (!vnPayOptions.IsConfigured)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "VNPay chưa được cấu hình an toàn.");
         var queryParams = HttpContext.Request.Query
             .ToDictionary(k => k.Key, v => v.Value.ToString());
 
@@ -356,7 +373,13 @@ public sealed class PaymentsController(
         var transactionNo = queryParams.GetValueOrDefault("vnp_TransactionNo");
         var isSuccess = responseCode == "00";
 
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (order is not null && IsCancelled(order))
+        {
+            logger.LogWarning("VNPay return received for cancelled order {OrderId}; manual reconciliation required.", orderId);
+            return Conflict("Đơn hàng đã hủy. Nếu bạn đã thanh toán, vui lòng liên hệ cửa hàng để đối soát.");
+        }
         if (order is not null)
         {
             var now = DateTime.UtcNow;
@@ -370,15 +393,6 @@ public sealed class PaymentsController(
                     order.PaymentStatus = "Paid";
                     order.UpdatedAt = now;
 
-                    if (order.OrderType == "DineIn" && order.TableId is int tableId)
-                    {
-                        var table = await db.DiningTables.FindAsync([tableId], ct);
-                        if (table is not null)
-                        {
-                            table.Status = "Available";
-                            table.UpdatedAt = now;
-                        }
-                    }
                 }
 
                 if (payment is null)
@@ -411,7 +425,10 @@ public sealed class PaymentsController(
             }
 
             await db.SaveChangesAsync(ct);
+            if (isSuccess) await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
         }
+
+        await tx.CommitAsync(ct);
 
         var html = isSuccess
             ? $"<html><body style='font-family:sans-serif;text-align:center;padding:50px;'><h2 style='color:green;'>✓ Thanh toán VNPay thành công!</h2><p>Mã giao dịch VNPay: <b>{transactionNo}</b></p><p>Bạn có thể đóng trang này và quay lại ứng dụng.</p></body></html>"
@@ -426,13 +443,17 @@ public sealed class PaymentsController(
     [HttpPost("{orderId:long}/vnpay/simulate-success"), Authorize]
     public async Task<IActionResult> SimulateVnPaySuccess(long orderId, CancellationToken ct)
     {
-        var order = await db.Orders.SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (!environment.IsDevelopment()) return NotFound();
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var order = await db.Orders.Include(x => x.OrderStatus).SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
         if (order is null) return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn hàng."));
 
         if (!IsStaffOrAdmin && order.UserId != CurrentUserId)
         {
             return Forbid();
         }
+
+        if (IsCancelled(order)) return CancelledOrder();
 
         if (order.PaymentStatus == "Paid")
         {
@@ -444,16 +465,6 @@ public sealed class PaymentsController(
 
         order.PaymentStatus = "Paid";
         order.UpdatedAt = now;
-
-        if (order.OrderType == "DineIn" && order.TableId is int tableId)
-        {
-            var table = await db.DiningTables.FindAsync([tableId], ct);
-            if (table is not null)
-            {
-                table.Status = "Available";
-                table.UpdatedAt = now;
-            }
-        }
 
         var payment = await db.Payments.FirstOrDefaultAsync(p => p.OrderId == orderId && p.Method == "VNPay", ct);
         if (payment is null)
@@ -477,6 +488,8 @@ public sealed class PaymentsController(
         }
 
         await db.SaveChangesAsync(ct);
+        await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+        await tx.CommitAsync(ct);
         return Ok(new { orderId, paymentStatus = order.PaymentStatus, transactionNo = fakeTxnNo, paidAt = now });
     }
 

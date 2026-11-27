@@ -12,6 +12,7 @@ class VnPayPaymentPage extends StatefulWidget {
   final Future<VnPayInfo> Function(int)? loadInfo;
   final Future<String> Function(int)? checkStatus;
   final Future<bool> Function(int)? confirmDemo;
+  final Widget Function(VnPayInfo)? webViewBuilder;
   final bool popToRootOnSuccess;
   const VnPayPaymentPage({
     super.key,
@@ -19,6 +20,7 @@ class VnPayPaymentPage extends StatefulWidget {
     this.loadInfo,
     this.checkStatus,
     this.confirmDemo,
+    this.webViewBuilder,
     this.popToRootOnSuccess = true,
   });
 
@@ -74,22 +76,20 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
 
   Future<void> _openWebView() async {
     if (info == null) return;
-    final success = await Navigator.push<bool>(
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VnPayWebViewPage(
-          orderId: widget.orderId,
-          orderCode: info!.orderCode,
-          paymentUrl: info!.paymentUrl,
-        ),
+        builder: (_) =>
+            widget.webViewBuilder?.call(info!) ??
+            VnPayWebViewPage(
+              orderId: widget.orderId,
+              orderCode: info!.orderCode,
+              paymentUrl: info!.paymentUrl,
+            ),
       ),
     );
 
-    if (success == true && mounted) {
-      returnHomeAfterPayment(context, popToRoot: widget.popToRootOnSuccess);
-    } else if (mounted) {
-      _checkStatus();
-    }
+    if (mounted) await _checkStatus();
   }
 
   Future<void> _openPortal() async {
@@ -408,23 +408,25 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
                             label: const Text('Kiểm tra'),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: simulating ? null : _simulateSuccess,
-                            icon: simulating
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.check),
-                            label: const Text('Đã chuyển (Demo)'),
+                        if (info!.demoEnabled) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: simulating ? null : _simulateSuccess,
+                              icon: simulating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.check),
+                              label: const Text('Đã chuyển (Demo)'),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ] else ...[

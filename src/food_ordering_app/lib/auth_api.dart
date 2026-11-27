@@ -1,3 +1,5 @@
+import 'package:trek_bikes_app/network_timeout.dart';
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -39,20 +41,24 @@ class ApiException implements Exception {
 
 class AuthApi {
   static Future<void> forgotPassword(String email) async {
-    final response = await http.post(
-      _uri('forgot-password'),
-      headers: _headers(),
-      body: jsonEncode({'email': email.trim()}),
-    );
+    final response = await http
+        .post(
+          _uri('forgot-password'),
+          headers: _headers(),
+          body: jsonEncode({'email': email.trim()}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
   static Future<void> checkPasswordResetCode(String email, String code) async {
-    final response = await http.post(
-      _uri('forgot-password/check-code'),
-      headers: _headers(),
-      body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
-    );
+    final response = await http
+        .post(
+          _uri('forgot-password/check-code'),
+          headers: _headers(),
+          body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
@@ -61,24 +67,28 @@ class AuthApi {
     String code,
     String password,
   ) async {
-    final response = await http.post(
-      _uri('reset-password'),
-      headers: _headers(),
-      body: jsonEncode({
-        'email': email.trim(),
-        'code': code.trim(),
-        'newPassword': password,
-      }),
-    );
+    final response = await http
+        .post(
+          _uri('reset-password'),
+          headers: _headers(),
+          body: jsonEncode({
+            'email': email.trim(),
+            'code': code.trim(),
+            'newPassword': password,
+          }),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 
   static Future<void> verifyEmail(String token) async {
-    final response = await http.post(
-      _uri('verify-email'),
-      headers: _headers(),
-      body: jsonEncode({'token': token.trim()}),
-    );
+    final response = await http
+        .post(
+          _uri('verify-email'),
+          headers: _headers(),
+          body: jsonEncode({'token': token.trim()}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
@@ -94,20 +104,24 @@ class AuthApi {
     required String fullName,
     required String email,
   }) async {
-    final response = await http.post(
-      _uri('register/start'),
-      headers: _headers(),
-      body: jsonEncode({'fullName': fullName, 'email': email}),
-    );
+    final response = await http
+        .post(
+          _uri('register/start'),
+          headers: _headers(),
+          body: jsonEncode({'fullName': fullName, 'email': email}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
   static Future<void> checkRegistrationCode(String email, String code) async {
-    final response = await http.post(
-      _uri('register/check-code'),
-      headers: _headers(),
-      body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
-    );
+    final response = await http
+        .post(
+          _uri('register/check-code'),
+          headers: _headers(),
+          body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
   }
 
@@ -116,15 +130,17 @@ class AuthApi {
     String code,
     String password,
   ) async {
-    final response = await http.post(
-      _uri('register/complete'),
-      headers: _headers(),
-      body: jsonEncode({
-        'email': email.trim(),
-        'code': code.trim(),
-        'password': password,
-      }),
-    );
+    final response = await http
+        .post(
+          _uri('register/complete'),
+          headers: _headers(),
+          body: jsonEncode({
+            'email': email.trim(),
+            'code': code.trim(),
+            'password': password,
+          }),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 201);
   }
 
@@ -132,11 +148,13 @@ class AuthApi {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      _uri('login'),
-      headers: _headers(),
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final response = await http
+        .post(
+          _uri('login'),
+          headers: _headers(),
+          body: jsonEncode({'email': email, 'password': password}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 200);
     return AuthSession.fromJson(
       jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
@@ -165,14 +183,16 @@ class AuthApi {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final response = await http.put(
-      _uri('change-password'),
-      headers: _headers(accessToken),
-      body: jsonEncode({
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-      }),
-    );
+    final response = await http
+        .put(
+          _uri('change-password'),
+          headers: _headers(accessToken),
+          body: jsonEncode({
+            'currentPassword': currentPassword,
+            'newPassword': newPassword,
+          }),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 
@@ -180,11 +200,13 @@ class AuthApi {
     required String accessToken,
     required String refreshToken,
   }) async {
-    final response = await http.post(
-      _uri('logout'),
-      headers: _headers(accessToken),
-      body: jsonEncode({'refreshToken': refreshToken}),
-    );
+    final response = await http
+        .post(
+          _uri('logout'),
+          headers: _headers(accessToken),
+          body: jsonEncode({'refreshToken': refreshToken}),
+        )
+        .timeout(apiRequestTimeout);
     _ensure(response, 204);
   }
 

@@ -9,21 +9,27 @@ using Microsoft.EntityFrameworkCore;
 namespace FoodOrdering.Api.Controllers;
 public sealed record StaffOrderLine(int FoodItemId,int Quantity);
 public sealed record CreateStaffOrderRequest(string OrderType, int? TableId, List<StaffOrderLine> Items, string? ReceiverName = null);
+public sealed record ExpectedStaffOrderLine(long OrderDetailId, int Quantity);
+public sealed record UpdateStaffOrderItemsRequest(List<StaffOrderLine> Items, List<ExpectedStaffOrderLine> ExpectedItems);
 [ApiController,Route("api/staff/orders"),Authorize(Roles="Admin,Staff")]
 public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBase{
  [HttpPut("{id:long}/status")]
  public async Task<IActionResult> Status(long id, UpdateOrderStatusRequest request, CancellationToken ct)
  {
+   await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
    var user=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
    var order=await db.Orders.Include(x=>x.OrderStatus).SingleOrDefaultAsync(x=>x.OrderId==id && (x.OrderType=="DineIn" || x.OrderType=="TakeAway"),ct);
    if(order is null) return NotFound();
+   if (request.Status == "Cancelled" && order.PaymentStatus == "Paid") return Conflict(ApiErrorResponse.Create("paid_order_cannot_cancel", "Không thể hủy đơn đã thanh toán khi chưa có quy trình hoàn tiền."));
    var allowed=order.OrderStatus!.Name switch { "Pending" => new[]{"Confirmed","Cancelled"}, "Confirmed" => new[]{"Preparing","Cancelled"}, "Preparing" => new[]{"Completed","Cancelled"}, _ => Array.Empty<string>() };
    if(!allowed.Contains(request.Status)) return Conflict();
    var status=await db.OrderStatuses.SingleAsync(x=>x.Name==request.Status,ct);
    order.OrderStatusId=status.OrderStatusId; order.UpdatedAt=DateTime.UtcNow;
    db.OrderStatusHistories.Add(new OrderStatusHistory { OrderId=id, OrderStatusId=status.OrderStatusId, UpdatedByUserId=user, CreatedAt=DateTime.UtcNow });
-   if(order.OrderType=="DineIn" && request.Status=="Cancelled" && order.PaymentStatus!="Paid" && order.TableId is int tableId) { var table=await db.DiningTables.FindAsync([tableId],ct); if(table is not null){table.Status="Available"; table.UpdatedAt=DateTime.UtcNow;} }
-   await db.SaveChangesAsync(ct); return Ok(new { orderId=id, status=request.Status });
+   await db.SaveChangesAsync(ct);
+   if (request.Status is "Completed" or "Cancelled") await DiningTableRelease.ReleaseIfUnoccupiedAsync(db, order, ct);
+   await tx.CommitAsync(ct);
+   return Ok(new { orderId=id, status=request.Status });
  }
  [HttpGet]
  public async Task<IActionResult> Get(CancellationToken ct) => Ok(await db.Orders.AsNoTracking()
@@ -44,10 +50,62 @@ public sealed class StaffOrdersController(FoodOrderingDbContext db):ControllerBa
        TableCode = x.DiningTable != null ? x.DiningTable.TableCode : null,
        CreatedBy = x.User != null ? x.User.FullName : null,
        Items = x.OrderDetails.OrderBy(d => d.OrderDetailId).Select(d => new {
-         d.FoodNameSnapshot, d.UnitPrice, d.Quantity
+         d.OrderDetailId, d.FoodItemId, d.FoodNameSnapshot, d.UnitPrice, d.Quantity
        }).ToList() })
      .SingleOrDefaultAsync(ct);
    return order is null ? NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn tại quán.")) : Ok(order);
+ }
+ [HttpPut("{id:long}/items")]
+ public async Task<IActionResult> UpdateItems(long id, UpdateStaffOrderItemsRequest request, CancellationToken ct)
+ {
+   if (request.Items is null || request.ExpectedItems is null || request.Items.Count == 0 || request.Items.Count > 100 || request.ExpectedItems.Count > 100 ||
+       request.Items.Any(x => x is null || x.FoodItemId <= 0 || x.Quantity is < 1 or > 99) ||
+       request.Items.Select(x => x.FoodItemId).Distinct().Count() != request.Items.Count ||
+       request.ExpectedItems.Any(x => x is null || x.OrderDetailId <= 0 || x.Quantity is < 1 or > 99) ||
+       request.ExpectedItems.Select(x => x.OrderDetailId).Distinct().Count() != request.ExpectedItems.Count)
+     return BadRequest(ApiErrorResponse.Create("invalid_items", "Danh sách món hoặc số lượng không hợp lệ."));
+
+   await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+   var order = await db.Orders
+     .FromSqlInterpolated($"SELECT * FROM dbo.Orders WITH (UPDLOCK, HOLDLOCK) WHERE OrderId = {id}")
+     .Include(x => x.OrderStatus).Include(x => x.OrderDetails)
+     .SingleOrDefaultAsync(ct);
+   if (order is null || order.OrderType is not ("DineIn" or "TakeAway"))
+     return NotFound(ApiErrorResponse.Create("order_not_found", "Không tìm thấy đơn tại quán."));
+   if (order.PaymentStatus != "Unpaid" || order.OrderStatus!.Name is "Completed" or "Cancelled")
+     return Conflict(ApiErrorResponse.Create("order_not_editable", "Đơn đã thanh toán hoặc kết thúc nên không thể sửa món."));
+   if (await db.Payments.AnyAsync(x => x.OrderId == id && x.Status == "Pending" && (x.Method == "VietQR" || x.Method == "VNPay"), ct))
+     return Conflict(ApiErrorResponse.Create("payment_pending", "Đơn đã tạo yêu cầu thanh toán. Hãy xử lý thanh toán trước khi sửa món."));
+   var current = order.OrderDetails.ToDictionary(x => x.OrderDetailId, x => x.Quantity);
+   if (current.Count != request.ExpectedItems.Count || request.ExpectedItems.Any(x => !current.TryGetValue(x.OrderDetailId, out var quantity) || quantity != x.Quantity))
+     return Conflict(ApiErrorResponse.Create("order_changed", "Đơn đã được thay đổi. Vui lòng tải lại trước khi sửa."));
+
+   if (order.OrderDetails.GroupBy(x => x.FoodItemId).Any(x => x.Count() > 1))
+     return Conflict(ApiErrorResponse.Create("duplicate_order_lines", "Đơn có nhiều dòng cùng món; vui lòng kiểm tra trước khi sửa."));
+   var oldItems = order.OrderDetails.ToDictionary(x => x.FoodItemId);
+   var newIds = request.Items.Where(x => !oldItems.ContainsKey(x.FoodItemId)).Select(x => x.FoodItemId).ToList();
+   var newFoods = await db.FoodItems.Where(x => newIds.Contains(x.FoodItemId) && x.IsAvailable).ToDictionaryAsync(x => x.FoodItemId, ct);
+   if (newFoods.Count != newIds.Count)
+     return Conflict(ApiErrorResponse.Create("food_not_available", "Có món mới không còn bán."));
+   var increasedIds = request.Items.Where(x => oldItems.TryGetValue(x.FoodItemId, out var old) && x.Quantity > old.Quantity).Select(x => x.FoodItemId).ToList();
+   if (await db.FoodItems.CountAsync(x => increasedIds.Contains(x.FoodItemId) && x.IsAvailable, ct) != increasedIds.Count)
+     return Conflict(ApiErrorResponse.Create("food_not_available", "Không thể tăng số lượng món đã ngừng bán."));
+   var selected = request.Items.ToDictionary(x => x.FoodItemId);
+   foreach (var detail in order.OrderDetails.ToList())
+   {
+     if (selected.TryGetValue(detail.FoodItemId, out var line)) detail.Quantity = line.Quantity;
+     else db.OrderDetails.Remove(detail);
+   }
+   foreach (var line in request.Items.Where(x => !oldItems.ContainsKey(x.FoodItemId)))
+   {
+     var food = newFoods[line.FoodItemId];
+     order.OrderDetails.Add(new OrderDetail { FoodItemId = food.FoodItemId, FoodNameSnapshot = food.Name, UnitPrice = food.Price, Quantity = line.Quantity, ImageUrlSnapshot = food.ImageUrl });
+   }
+   order.TotalAmount = request.Items.Sum(line => oldItems.TryGetValue(line.FoodItemId, out var previous) ? previous.UnitPrice * line.Quantity : newFoods[line.FoodItemId].Price * line.Quantity);
+   order.UpdatedAt = DateTime.UtcNow;
+   await db.SaveChangesAsync(ct);
+   await tx.CommitAsync(ct);
+   return Ok(new { orderId = order.OrderId, totalAmount = order.TotalAmount });
  }
  [HttpPost]
  public async Task<IActionResult> Create(CreateStaffOrderRequest r, CancellationToken ct)
