@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/vietqr_payment_page.dart';
-import 'package:trek_bikes_app/vnpay_payment_page.dart';
-import 'package:trek_bikes_app/auth_api.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/vietqr_payment_page.dart';
+import 'package:food_ordering_app/vnpay_payment_page.dart';
+import 'package:food_ordering_app/auth_api.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, this.checkout, this.vietQrBuilder});

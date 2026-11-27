@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/food_item_api.dart';
+import 'package:food_ordering_app/food_item_api.dart';
 
 void main() {
   test('parses paged admin food item response', () {

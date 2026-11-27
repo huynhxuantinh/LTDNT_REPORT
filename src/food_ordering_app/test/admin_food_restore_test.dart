@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:trek_bikes_app/admin_food_items_page.dart';
+import 'package:food_ordering_app/admin_food_items_page.dart';
 
 void main() {
   testWidgets('admin can restore a hidden food from the list', (tester) async {

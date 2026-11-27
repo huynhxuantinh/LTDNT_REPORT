@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/app_states.dart';
+import 'package:food_ordering_app/app_states.dart';
 
 void main() {
   testWidgets('renders shared loading, error and empty states', (tester) async {

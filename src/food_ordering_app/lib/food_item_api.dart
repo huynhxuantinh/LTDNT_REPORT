@@ -1,13 +1,13 @@
-import 'package:trek_bikes_app/network_timeout.dart';
+import 'package:food_ordering_app/network_timeout.dart';
 
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:trek_bikes_app/api_config.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/session_helper.dart';
+import 'package:food_ordering_app/api_config.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/session_helper.dart';
 
 class AdminFoodItem {
   final int foodItemId;

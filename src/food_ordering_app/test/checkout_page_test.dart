@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/checkout_page.dart';
-import 'package:trek_bikes_app/auth_api.dart';
+import 'package:food_ordering_app/checkout_page.dart';
+import 'package:food_ordering_app/auth_api.dart';
 
 void main() {
   testWidgets('Checkout requires recipient, phone and address', (tester) async {

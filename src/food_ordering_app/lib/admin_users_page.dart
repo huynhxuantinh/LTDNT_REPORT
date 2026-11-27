@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/admin_users_api.dart';
-import 'package:trek_bikes_app/app_states.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/vietnamese_labels.dart';
+import 'package:food_ordering_app/admin_users_api.dart';
+import 'package:food_ordering_app/app_states.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/vietnamese_labels.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});

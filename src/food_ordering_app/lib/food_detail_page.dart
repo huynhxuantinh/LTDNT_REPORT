@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/app_states.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_icon_button.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/food_image.dart';
-import 'package:trek_bikes_app/money_format.dart';
-import 'package:trek_bikes_app/related_foods_section.dart';
+import 'package:food_ordering_app/app_states.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/cart_icon_button.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/food_image.dart';
+import 'package:food_ordering_app/money_format.dart';
+import 'package:food_ordering_app/related_foods_section.dart';
 
 class FoodDetailPage extends StatefulWidget {
   const FoodDetailPage({

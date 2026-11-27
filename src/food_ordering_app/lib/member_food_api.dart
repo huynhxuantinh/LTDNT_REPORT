@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:trek_bikes_app/api_config.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/local_database.dart';
-import 'package:trek_bikes_app/network_failure.dart';
+import 'package:food_ordering_app/api_config.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/local_database.dart';
+import 'package:food_ordering_app/network_failure.dart';
 
 class MemberFoodItem {
   const MemberFoodItem({

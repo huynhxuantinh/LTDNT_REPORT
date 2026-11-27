@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/food_image.dart';
-import 'package:trek_bikes_app/member_category_api.dart';
+import 'package:food_ordering_app/food_image.dart';
+import 'package:food_ordering_app/member_category_api.dart';
 
 class HomeCategories extends StatefulWidget {
   const HomeCategories({super.key, required this.onSelected, this.selectedId});

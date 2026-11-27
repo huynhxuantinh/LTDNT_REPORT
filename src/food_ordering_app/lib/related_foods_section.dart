@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/food_image.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/money_format.dart';
+import 'package:food_ordering_app/food_image.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/money_format.dart';
 
 class RelatedFoodsSection extends StatefulWidget {
   const RelatedFoodsSection({

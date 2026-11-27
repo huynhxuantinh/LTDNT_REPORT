@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/app_states.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/food_detail_page.dart';
-import 'package:trek_bikes_app/food_image.dart';
-import 'package:trek_bikes_app/money_format.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:food_ordering_app/app_states.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/food_detail_page.dart';
+import 'package:food_ordering_app/food_image.dart';
+import 'package:food_ordering_app/money_format.dart';
+import 'package:food_ordering_app/member_food_api.dart';
 
 class HomeLatestFoods extends StatefulWidget {
   const HomeLatestFoods({super.key, this.categoryId, this.categoryName});

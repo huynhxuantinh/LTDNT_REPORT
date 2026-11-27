@@ -101,7 +101,7 @@ Copy `src/food_ordering_app/.env.example` thành `.env`, sau đó chọn một U
 
 ### Chuẩn bị APK Android release
 
-- App Android dùng application ID `vn.foodordering.app`; cài bản này sẽ được Android xem là ứng dụng khác với bản cũ `com.example.trek_bikes_app`.
+- App Android dùng application ID `vn.foodordering.app`; Android sẽ xem đây là ứng dụng khác với bản cài dùng mã định danh cũ.
 - Cấu hình `API_URL` bằng HTTPS có thể truy cập từ điện thoại trước khi build release. HTTP chỉ được bật trong bản debug; bản release từ chối HTTP.
 - Tự tạo và lưu giữ keystore riêng: trong thư mục `src/food_ordering_app/android`, chạy `keytool -genkeypair -v -keystore release-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000` và nhập mật khẩu khi được hỏi. Sao lưu keystore và mật khẩu ở nơi an toàn; mất key sẽ không cập nhật được ứng dụng đã phát hành bằng key đó.
 - Sao chép `android/key.properties.example` thành `android/key.properties` và điền mật khẩu thực tế cùng đường dẫn keystore. Các file key và `key.properties` được Git bỏ qua. Chạy `flutter build apk --release` trong `src/food_ordering_app`; build release không dùng debug key.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/staff_payment_page.dart';
+import 'package:food_ordering_app/staff_payment_page.dart';
 
 import 'dart:convert';
 

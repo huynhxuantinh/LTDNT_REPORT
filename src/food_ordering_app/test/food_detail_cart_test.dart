@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_page.dart';
-import 'package:trek_bikes_app/food_detail_page.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/cart_page.dart';
+import 'package:food_ordering_app/food_detail_page.dart';
+import 'package:food_ordering_app/member_food_api.dart';
 
 void main() {
   testWidgets('food detail shows cart count and updates it after adding', (

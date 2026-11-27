@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/money_format.dart';
-import 'package:trek_bikes_app/checkout_page.dart';
-import 'package:trek_bikes_app/user_error.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/money_format.dart';
+import 'package:food_ordering_app/checkout_page.dart';
+import 'package:food_ordering_app/user_error.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key, this.loadCart, this.setQuantity, this.removeItem});

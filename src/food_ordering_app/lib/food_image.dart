@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/api_config.dart';
+import 'package:food_ordering_app/api_config.dart';
 
 class FoodImage extends StatelessWidget {
   const FoodImage({super.key, required this.imageUrl, this.size = 56});

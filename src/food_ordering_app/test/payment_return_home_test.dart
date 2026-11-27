@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/checkout_page.dart';
-import 'package:trek_bikes_app/payment_navigation.dart';
-import 'package:trek_bikes_app/vietqr_api.dart';
-import 'package:trek_bikes_app/vietqr_payment_page.dart';
-import 'package:trek_bikes_app/vnpay_api.dart';
-import 'package:trek_bikes_app/vnpay_payment_page.dart';
+import 'package:food_ordering_app/checkout_page.dart';
+import 'package:food_ordering_app/payment_navigation.dart';
+import 'package:food_ordering_app/vietqr_api.dart';
+import 'package:food_ordering_app/vietqr_payment_page.dart';
+import 'package:food_ordering_app/vnpay_api.dart';
+import 'package:food_ordering_app/vnpay_payment_page.dart';
 
 Widget appWithPayment(Widget payment) => MaterialApp(
   home: Builder(

@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/main.dart';
-import 'package:trek_bikes_app/user_error.dart';
-import 'package:trek_bikes_app/vietnamese_labels.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/main.dart';
+import 'package:food_ordering_app/user_error.dart';
+import 'package:food_ordering_app/vietnamese_labels.dart';
 
 void main() {
   testWidgets('application uses Vietnamese Material localization', (tester) async {

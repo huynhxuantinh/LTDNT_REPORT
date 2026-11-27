@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/auth_pages.dart';
+import 'package:food_ordering_app/auth_pages.dart';
 
 void main() {
   testWidgets('forgot password starts with email only', (tester) async {

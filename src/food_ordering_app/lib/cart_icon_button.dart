@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_page.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/cart_page.dart';
 
 class CartIconButton extends StatelessWidget {
   const CartIconButton({super.key});

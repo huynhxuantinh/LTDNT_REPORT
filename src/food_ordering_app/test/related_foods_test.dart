@@ -5,10 +5,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/food_detail_page.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/related_foods_section.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/food_detail_page.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/related_foods_section.dart';
 
 MemberFoodItem food(int id, String name) => MemberFoodItem(
   foodItemId: id,

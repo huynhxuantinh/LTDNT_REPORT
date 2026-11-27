@@ -1,22 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/vietnamese_labels.dart';
-import 'package:trek_bikes_app/admin_categories_page.dart';
-import 'package:trek_bikes_app/admin_food_items_page.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/home_categories.dart';
-import 'package:trek_bikes_app/home_latest_foods.dart';
-import 'package:trek_bikes_app/member_category_api.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_icon_button.dart';
-import 'package:trek_bikes_app/orders_page.dart';
-import 'package:trek_bikes_app/admin_orders_page.dart';
-import 'package:trek_bikes_app/admin_users_page.dart';
-import 'package:trek_bikes_app/staff_order_page.dart';
-import 'package:trek_bikes_app/staff_orders_page.dart';
-import 'package:trek_bikes_app/role_guard.dart';
-import 'package:trek_bikes_app/session_helper.dart';
+import 'package:food_ordering_app/vietnamese_labels.dart';
+import 'package:food_ordering_app/admin_categories_page.dart';
+import 'package:food_ordering_app/admin_food_items_page.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/home_categories.dart';
+import 'package:food_ordering_app/home_latest_foods.dart';
+import 'package:food_ordering_app/member_category_api.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/cart_icon_button.dart';
+import 'package:food_ordering_app/orders_page.dart';
+import 'package:food_ordering_app/admin_orders_page.dart';
+import 'package:food_ordering_app/admin_users_page.dart';
+import 'package:food_ordering_app/staff_order_page.dart';
+import 'package:food_ordering_app/staff_orders_page.dart';
+import 'package:food_ordering_app/role_guard.dart';
+import 'package:food_ordering_app/session_helper.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onSessionChanged;

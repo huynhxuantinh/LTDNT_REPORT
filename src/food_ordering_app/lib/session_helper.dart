@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:trek_bikes_app/auth_api.dart';
+import 'package:food_ordering_app/auth_api.dart';
 
 class SessionHelper {
   static const _storage = FlutterSecureStorage();

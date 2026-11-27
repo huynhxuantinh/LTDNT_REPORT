@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:trek_bikes_app/auth_pages.dart';
-import 'package:trek_bikes_app/session_helper.dart';
+import 'package:food_ordering_app/auth_pages.dart';
+import 'package:food_ordering_app/session_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

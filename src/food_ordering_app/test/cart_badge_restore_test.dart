@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/auth_pages.dart';
-import 'package:trek_bikes_app/cart_api.dart';
+import 'package:food_ordering_app/auth_pages.dart';
+import 'package:food_ordering_app/cart_api.dart';
 
 void main() {
   testWidgets('home restores cart badge from server when opened', (tester) async {

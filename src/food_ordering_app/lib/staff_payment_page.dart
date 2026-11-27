@@ -1,17 +1,17 @@
-import 'package:trek_bikes_app/network_timeout.dart';
+import 'package:food_ordering_app/network_timeout.dart';
 
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:trek_bikes_app/api_config.dart';
-import 'package:trek_bikes_app/money_format.dart';
-import 'package:trek_bikes_app/session_helper.dart';
-import 'package:trek_bikes_app/vietqr_payment_page.dart';
-import 'package:trek_bikes_app/vnpay_payment_page.dart';
-import 'package:trek_bikes_app/vietnamese_labels.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/user_error.dart';
+import 'package:food_ordering_app/api_config.dart';
+import 'package:food_ordering_app/money_format.dart';
+import 'package:food_ordering_app/session_helper.dart';
+import 'package:food_ordering_app/vietqr_payment_page.dart';
+import 'package:food_ordering_app/vnpay_payment_page.dart';
+import 'package:food_ordering_app/vietnamese_labels.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/user_error.dart';
 
 class StaffPaymentPage extends StatefulWidget {
   const StaffPaymentPage({

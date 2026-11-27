@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/user_error.dart';
+import 'package:food_ordering_app/user_error.dart';
 import 'package:flutter/services.dart';
-import 'package:trek_bikes_app/vietqr_api.dart';
-import 'package:trek_bikes_app/payment_navigation.dart';
-import 'package:trek_bikes_app/money_format.dart';
+import 'package:food_ordering_app/vietqr_api.dart';
+import 'package:food_ordering_app/payment_navigation.dart';
+import 'package:food_ordering_app/money_format.dart';
 
 class VietQrPaymentPage extends StatefulWidget {
   final int orderId;

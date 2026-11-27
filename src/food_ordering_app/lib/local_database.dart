@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:trek_bikes_app/member_category_api.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:food_ordering_app/member_category_api.dart';
+import 'package:food_ordering_app/member_food_api.dart';
 
 class LocalDatabase {
   LocalDatabase._();

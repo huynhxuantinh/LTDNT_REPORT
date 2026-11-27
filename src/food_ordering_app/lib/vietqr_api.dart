@@ -1,11 +1,11 @@
-import 'package:trek_bikes_app/network_timeout.dart';
+import 'package:food_ordering_app/network_timeout.dart';
 
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:trek_bikes_app/api_config.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/session_helper.dart';
+import 'package:food_ordering_app/api_config.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/session_helper.dart';
 
 /// Dữ liệu thông tin thanh toán VietQR trả về từ API.
 class VietQrInfo {

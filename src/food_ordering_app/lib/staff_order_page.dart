@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:trek_bikes_app/network_timeout.dart';
+import 'package:food_ordering_app/network_timeout.dart';
 
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:trek_bikes_app/api_config.dart';
-import 'package:trek_bikes_app/session_helper.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/app_states.dart';
-import 'package:trek_bikes_app/staff_payment_page.dart';
+import 'package:food_ordering_app/api_config.dart';
+import 'package:food_ordering_app/session_helper.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/app_states.dart';
+import 'package:food_ordering_app/staff_payment_page.dart';
 
 class StaffOrderPage extends StatefulWidget {
   const StaffOrderPage({super.key, this.loadFoods, this.loadTables});

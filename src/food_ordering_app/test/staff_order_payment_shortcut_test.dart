@@ -6,8 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/staff_order_page.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/staff_order_page.dart';
 
 void main() {
   testWidgets('creates one staff order then opens its payment screen', (

@@ -9,10 +9,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqlite3/open.dart' as sqlite;
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/local_database.dart';
-import 'package:trek_bikes_app/member_category_api.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/local_database.dart';
+import 'package:food_ordering_app/member_category_api.dart';
+import 'package:food_ordering_app/member_food_api.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -3,10 +3,10 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:trek_bikes_app/app_states.dart';
-import 'package:trek_bikes_app/auth_api.dart';
-import 'package:trek_bikes_app/category_api.dart';
-import 'package:trek_bikes_app/food_image.dart';
+import 'package:food_ordering_app/app_states.dart';
+import 'package:food_ordering_app/auth_api.dart';
+import 'package:food_ordering_app/category_api.dart';
+import 'package:food_ordering_app/food_image.dart';
 
 typedef CategoryImage = ({Uint8List bytes, String name});
 

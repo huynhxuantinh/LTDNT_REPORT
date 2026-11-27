@@ -7,10 +7,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:trek_bikes_app/admin_food_items_page.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/food_detail_page.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
+import 'package:food_ordering_app/admin_food_items_page.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/food_detail_page.dart';
+import 'package:food_ordering_app/member_food_api.dart';
 
 void main() {
   testWidgets('admin selects several images and deletes one saved image', (

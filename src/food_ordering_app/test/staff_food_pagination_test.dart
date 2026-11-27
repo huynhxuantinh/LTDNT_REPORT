@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/member_food_api.dart';
-import 'package:trek_bikes_app/staff_order_page.dart';
+import 'package:food_ordering_app/member_food_api.dart';
+import 'package:food_ordering_app/staff_order_page.dart';
 
 void main() {
   testWidgets('staff can select foods across pages without losing quantities', (

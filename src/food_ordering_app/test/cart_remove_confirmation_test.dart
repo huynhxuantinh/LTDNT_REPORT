@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trek_bikes_app/cart_api.dart';
-import 'package:trek_bikes_app/cart_page.dart';
+import 'package:food_ordering_app/cart_api.dart';
+import 'package:food_ordering_app/cart_page.dart';
 
 void main() {
   testWidgets('minimum quantity is one and deletion requires confirmation', (
